@@ -62,6 +62,14 @@ MATS-L1-processing
     Test module
 
         $pytest
+        
+### Known issues
+
+Cartopy installation will fail if you do not have all the system libraries required for cartopy installed. Either install cartopy binary direct using 
+$conda install cartopy
+
+or install the required libraries, e.g. $sudo apt -y install libgeos-dev
+
 
 Note
 
