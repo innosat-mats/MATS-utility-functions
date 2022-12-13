@@ -13,12 +13,15 @@ flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
-    Exit program if type is not DataFrame
+    Exit program if type is not DataFrame or Series (single row of dataframe)
 
     Parameters
     ----------
     CCD_dataframe : any
         CCD_dataframe
+
+    Returns:
+        (type): Datatype of dataframe
     """
 
     if isinstance(CCD_dataframe, (pd.core.frame.DataFrame, pd.core.series.Series)) is False:
@@ -28,6 +31,29 @@ def check_type(CCD_dataframe):
 
 def plot_image(CCD,fig=None, outpath=None, nstd=2, cmap='inferno', custom_cbar=False,
                 ranges=[0, 1000], format='png'):
+    """
+    Function to plot single MATS image
+
+    Parameters
+    ----------
+    CCD : pandas.Series
+        row of pandas dataframe of the image to be plotted
+    fig : fig, optional
+        figure handle to plot on
+    outdir : str, optional
+        Out directory, default = None
+    nstd : int, optional
+        number of standard deviations, by default 2
+    cmap : str, optional
+       colormap for plot, by default 'inferno'
+    custom_cbar : bool, optional
+        if custom cbar set True, by default False
+    ranges : list, optional
+        limits for custom cbar, by default [0,1000]
+    format : str, optional
+        format for files, by default 'png'
+    
+    """
 
     if fig == None:
         fig = plt.figure(figsize=(12, 3))
