@@ -13,12 +13,11 @@ def test_onboard_time():
     assert time_tools.onboardTime_to_utc(onboard_time) == utctime
 
 def test_read_MATS_data():
-    start_time = DT.datetime(2022,12,4,0,0,0,tzinfo=DT.timezone.utc)
-    stop_time = DT.datetime(2022,12,5,0,0,0,tzinfo=DT.timezone.utc)
+    start_time = DT.datetime(2022,12,4,12,0,0,tzinfo=DT.timezone.utc)
+    stop_time = DT.datetime(2022,12,4,12,10,0,tzinfo=DT.timezone.utc)
     df = read_data.read_MATS_data(start_time,stop_time)
-    CCDitems = dataframe_to_ccd_items(df)
-
-    pltCCD.simple_plot(df,'.')
+    pltCCD.orbit_plot(df.iloc[0],'./') #test plotting single image
+    pltCCD.orbit_plot(df,'./')#test plotting entire dataframe
 
 if __name__ == "__main__":
     test_read_MATS_data()

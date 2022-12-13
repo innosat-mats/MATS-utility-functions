@@ -11,31 +11,92 @@ from cartopy.feature.nightshade import Nightshade
 flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
 
 
-def check_type(CCDitems):
-    """Check format of CCDitems
+def check_type(CCD_dataframe):
+    """Check format of CCD_dataframe
     Exit program if type is not DataFrame
 
     Parameters
     ----------
-    CCDitems : any
-        CCDitems
+    CCD_dataframe : any
+        CCD_dataframe
     """
 
-    if isinstance(CCDitems, pd.core.frame.DataFrame) is False:
-        sys.exit("CCDitems need to be converted to DataFrame!")
+    if isinstance(CCD_dataframe, (pd.core.frame.DataFrame, pd.core.series.Series)) is False:
+        sys.exit("CCD_dataframe need to be converted to DataFrame!")
+    
+    return type(CCD_dataframe)
 
-    return
-
-
-def simple_plot(CCDitems, outdir, nstd=2, cmap='inferno', custom_cbar=False,
+def plot_image(CCD,fig=None, outpath=None, nstd=2, cmap='inferno', custom_cbar=False,
                 ranges=[0, 1000], format='png'):
-    """Generates plots from CCDitems with basic orbit parameters included.
+
+    if fig == None:
+        fig = plt.figure(figsize=(12, 3))
+
+    # save parameters for plot
+    channel = CCD['channel']
+    image = CCD['IMAGE']
+    texpms = CCD['TEXPMS']
+    exp_date = CCD['EXPDate'].strftime("%Y-%m-%dT%H:%M:%S:%f")
+
+    # filename
+    outname = f"{CCD['ImageName'][:-4]}"
+
+    # calc std and mean
+    std = image.std()
+    mean = image.mean()
+
+    if custom_cbar:
+        vmin = ranges[0]
+        vmax = ranges[1]
+    else:
+        vmax = mean+nstd*std
+        vmin = mean-nstd*std
+
+    # orbital parameters
+    (satlat, satlon, satLT,
+        nadir_sza, nadir_mza,
+        TPlat, TPlon,
+        TPLT, TPsza, TPssa) = satellite.get_position(CCD['EXPDate'])
+
+    # plot CCD image
+    if channel in flipped_CCDs:
+        nrows = np.arange(0, CCD['NROW'])
+        ncols = np.arange(0, CCD['NCOL']+1)
+        plt.pcolormesh(np.flip(ncols), nrows,
+                        image, cmap=cmap,
+                        vmax=vmax, vmin=vmin)
+
+    else:
+        plt.pcolormesh(image, cmap=cmap,
+                        vmax=vmax, vmin=vmin)
+
+    # print out additional information
+    plt.figtext(0.1, 0.8, f'tpSZA: {TPsza:.6}',
+                fontsize=10, color='white')
+    plt.figtext(0.5, 0.8, (f'satlat, satlon: ({satlat:.6}' +
+                            f', {satlon:.6})'),
+                fontsize=10, color='white')
+    plt.figtext(0.25, 0.8, f'TPlat, TPlon: ({TPlat:.6}, {TPlon:.6})',
+                fontsize=10, color='white')
+
+    plt.title(f'ch: {channel}; time: {exp_date}; TEXPMS: {texpms}')
+    plt.tight_layout()
+
+    # save figure
+    if outpath != None:
+        plt.savefig(f'{outpath}/{outname}.{format}', format=format)
+        fig.clear()
+
+
+def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
+                ranges=[0, 1000], format='png'):
+    """Generates plots from CCD_dataframe with basic orbit parameters included.
     Images will be sorted in folders based on CCDSEL in directory specified.
 
     Parameters
     ----------
-    CCDitems : DataFrame
-        CCDitems for plotting
+    CCD_dataframe : DataFrame
+        CCD_dataframe for plotting
     outdir : str
         Out directory
     nstd : int, optional
@@ -50,76 +111,40 @@ def simple_plot(CCDitems, outdir, nstd=2, cmap='inferno', custom_cbar=False,
         format for files, by default 'png'
     """
 
-    check_type(CCDitems)
+    dftype = check_type(CCD_dataframe)
 
     fig = plt.figure(figsize=(12, 3))
 
     for CCDno in range(0, 8):
-        CCDs = CCDitems[CCDitems['CCDSEL'] == CCDno]
+        if dftype == pd.core.frame.DataFrame:
+            CCDs = CCD_dataframe[CCD_dataframe['CCDSEL'] == CCDno]
+        elif dftype == pd.core.series.Series:
+            if CCD_dataframe['CCDSEL'] == CCDno:
+                CCDs = CCD_dataframe
+            else:
+                CCDs = []
+        else:
+            raise TypeError('Invalid dataframe')
+
 
         if len(CCDs) > 0:
             outpath = f"{outdir}CCDSEL{str(CCDno)}"
             if not os.path.exists(outpath):
                 os.makedirs(outpath)
-
-        for index, CCD in CCDs.iterrows():
-
-            # save parameters for plot
-            channel = CCD['channel']
-            image = CCD['IMAGE']
-            texpms = CCD['TEXPMS']
-            exp_date = CCD['EXP Date'].strftime("%Y-%m-%dT%H:%M:%S:%f")
-
-            # filename
-            outname = f"{CCD['Image File Name'][:-4]}_{index}"
-
-            # calc std and mean
-            std = image.std()
-            mean = image.mean()
-
-            if custom_cbar:
-                vmin = ranges[0]
-                vmax = ranges[1]
-            else:
-                vmax = mean+nstd*std
-                vmin = mean-nstd*std
-
-            # orbital parameters
-            (satlat, satlon, satLT,
-             nadir_sza, nadir_mza,
-             TPlat, TPlon,
-             TPLT, TPsza, TPssa) = satellite.get_position(CCD['EXP Date'])
-
-            # plot CCD image
-            if channel in flipped_CCDs:
-                nrows = np.arange(0, CCD['NROW'])
-                ncols = np.arange(0, CCD['NCOL']+1)
-                plt.pcolormesh(np.flip(ncols), nrows,
-                               image, cmap=cmap,
-                               vmax=vmax, vmin=vmin)
-
-            else:
-                plt.pcolormesh(image, cmap=cmap,
-                               vmax=vmax, vmin=vmin)
-
-            # print out additional information
-            plt.figtext(0.1, 0.8, f'tpSZA: {TPsza:.6}',
-                        fontsize=10, color='white')
-            plt.figtext(0.5, 0.8, (f'satlat, satlon: ({satlat:.6}' +
-                                   f', {satlon:.6})'),
-                        fontsize=10, color='white')
-            plt.figtext(0.25, 0.8, f'TPlat, TPlon: ({TPlat:.6}, {TPlon:.6})',
-                        fontsize=10, color='white')
-
-            plt.title(f'ch: {channel}; time: {exp_date}; TEXPMS: {texpms}')
-            plt.tight_layout()
-
-            # save figure
-            plt.savefig(f'{outpath}/{outname}.{format}', format=format)
-            fig.clear()
+        else:
+            continue
+        
+        if dftype == pd.core.series.Series:
+            plot_image(CCDs, fig=fig, outpath=outpath, nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
+                ranges=ranges, format=format)
+        else:
+            for index,CCD in CCDs.iterrows():
+                plot_image(CCD, fig=fig, outpath=outpath, nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
+                    ranges=ranges, format=format)
 
 
-def orbit_plot(CCDitems, outdir, nstd=2, cmap='inferno', custom_cbar=False,
+
+def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
                ranges=[0, 1000], format='png'):
     """
        Generates plots from CCD items: image, histogram and map.
@@ -128,8 +153,8 @@ def orbit_plot(CCDitems, outdir, nstd=2, cmap='inferno', custom_cbar=False,
 
     Parameters
     ----------
-    CCDitems : DataFrame
-        CCDitems to be plotted.
+    CCD_dataframe : DataFrame
+        CCD_dataframe to be plotted.
     outdir : str
         path where images will be saved
     nstd : int, optional
@@ -144,11 +169,11 @@ def orbit_plot(CCDitems, outdir, nstd=2, cmap='inferno', custom_cbar=False,
         file format for output img
     """
 
-    check_type(CCDitems)
+    check_type(CCD_dataframe)
 
     for CCDno in range(0, 8):
 
-        CCDs = CCDitems[CCDitems['CCDSEL'] == CCDno]
+        CCDs = CCD_dataframe[CCD_dataframe['CCDSEL'] == CCDno]
 
         if len(CCDs) > 0:
             outpath = f"{outdir}CCDSEL{str(CCDno)}"
@@ -162,10 +187,10 @@ def orbit_plot(CCDitems, outdir, nstd=2, cmap='inferno', custom_cbar=False,
                 channel = CCD['channel']
                 image = CCD['IMAGE']
                 texpms = CCD['TEXPMS']
-                exp_date = CCD['EXP Date'].strftime("%Y-%m-%dT%H:%M:%S:%f")
+                exp_date = CCD['EXPDate'].strftime("%Y-%m-%dT%H:%M:%S:%f")
 
                 # filename
-                outname = f"{CCD['Image File Name'][:-4]}_{index}"
+                outname = f"{CCD['ImageName'][:-4]}_{index}"
 
                 # calc std and mean
                 std = image.std()
@@ -183,7 +208,7 @@ def orbit_plot(CCDitems, outdir, nstd=2, cmap='inferno', custom_cbar=False,
                  satLT, nadir_sza,
                  nadir_mza, TPlat,
                  TPlon, TPLT, TPsza,
-                 TPssa) = satellite.get_position(CCD['EXP Date'])
+                 TPssa) = satellite.get_position(CCD['EXPDate'])
 
                 fig = plt.figure(figsize=(10, 7))
 
