@@ -10,8 +10,10 @@ from skyfield.positionlib import ICRF
 from skyfield.units import Distance
 from skyfield.framelib import itrs
 import ephem
+import os
+import sqlite3 as sqlite
 
-def get_position(date,TLE=None):
+def get_position(date,TLE=None,database=False):
     """Function which extracts geolocation of satellite and tangent point
     based on TLE (only fixed TLE supported at the moment) and
     tangent point is calculated assuming 92km tanalt. 
@@ -45,7 +47,7 @@ def get_position(date,TLE=None):
     yawoffset = 0
     ts=sfapi.load.timescale()
     if TLE == None:
-        sfodin=get_tle_MATS(date)
+        sfodin=get_tle_MATS(date,database)
     else: 
         raise NotImplementedError('custom TLE not supported')
 
@@ -131,31 +133,59 @@ def radec2xyz(ra,dec, deg=True):
     return [x,y,z]
 
         
-def get_tle_MATS(d):
+def get_tle_MATS(d,database=False):
     ts=sfapi.load.timescale()
     if d.tzinfo == None:
         d = d.replace(tzinfo=DT.timezone.utc)
 
-    if d<DT.datetime(2022,11,26,tzinfo=DT.timezone.utc):
-        tle=['1 99988U 22123A   22327.21800926  .00000000  00000-0  22763-3 0   159',
-            '2 99988  97.6525 329.4315 0012466 240.1585 268.5406 14.92722274002766']
+    if database:
+        tle = get_tle_dateDB(d)
     else:
-        tle=['1 99988U 22123A   22332.47506944  .00000000  00000-0  24758-3 0   163',
-            '2 99988  97.6531 334.5422 0012605 221.2886  80.4135 14.92738746003557']
+        print('Using Fixed TLEs will be dissalowed in near future, use database = True')
+        if d<DT.datetime(2022,11,26,tzinfo=DT.timezone.utc):
+            tle=['1 99988U 22123A   22327.21800926  .00000000  00000-0  22763-3 0   159',
+                '2 99988  97.6525 329.4315 0012466 240.1585 268.5406 14.92722274002766']
+        else:
+            tle=['1 99988U 22123A   22332.47506944  .00000000  00000-0  24758-3 0   163',
+                '2 99988  97.6531 334.5422 0012605 221.2886  80.4135 14.92738746003557']
 
     
     sfodin = sgp4lib.EarthSatellite(tle[0],tle[1])
     return sfodin
 
-def loadysb(d):
-    ysb=[]
-    with open('YBS.edb','r') as fb:
-        for line in fb:
-            if line[0] !='#' and len(line) >1 : 
-                st=ephem.readdb(line)
-                st.compute()
-                ysb.append(st)
-    return ysb
+# def loadysb(d):
+#     ysb=[]
+#     with open('YBS.edb','r') as fb:
+#         for line in fb:
+#             if line[0] !='#' and len(line) >1 : 
+#                 st=ephem.readdb(line)
+#                 st.compute()
+#                 ysb.append(st)
+#     return ysb
+
+
+
+def get_tle_dateDB(d,maxdays=3):
+
+    d=d.replace(tzinfo=None)
+    homecat=os.environ.get('HOME')
+    tledb='data/matsTLE.db'
+    db=sqlite.connect(tledb)
+    #db=sqlite.connect('/tmp/matsTLE.db')
+    cur=db.cursor()
+    sperday=24.*60*60
+    doy=d-DT.datetime(d.year,1,1)
+    datekey =((d.year-int(d.year/100)*100)*1000 + doy.days+doy.seconds/sperday)*100
+    #query="select tle1,tle2 from matsTletext where datekey between {} and {}"
+    query="select datekey, Tle1,Tle2 FROM MatsTleText where abs(datekey-{}) < 100 * {}"
+
+    #r=cur.execute(query.format(datekey-100*ndaysbefore,datekey+100*ndaysafter)) #four day margin
+    r=cur.execute(query.format(datekey,maxdays)) #four day margin
+    tle=r.fetchone()
+    cur.close()
+    db.close()
+
+    return tle[1:]
 
 
 def funpitch(pitch,t,th,pos,yaw,rotmatrix):
@@ -175,4 +205,4 @@ def findtangent(t,pos,FOV):
 
 def findpitch (th,t,pos,yaw,rotmatrix):
     res=minimize_scalar(funpitch,args=(t,th,pos,yaw,rotmatrix),method="Bounded",bounds=(np.deg2rad(-30),np.deg2rad(-10)))
-    return res.x
+    return res.x    

@@ -10,7 +10,6 @@ File for differet plotting functions to be used for MATS commisioning data analy
 
 
 import matplotlib.pyplot as plt
-from mats_l1_processing.experimental_utils import plot_CCDimage
 import numpy as np
 
 def collapsandplot(imagecube,collapsdim, ax, signallabel='', title=''):

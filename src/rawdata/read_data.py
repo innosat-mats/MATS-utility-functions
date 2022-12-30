@@ -1,13 +1,6 @@
-from pyarrow import fs, schema, string
-from pyarrow.dataset import FilenamePartitioning
-import pyarrow.dataset as ds
+from pyarrow import fs
 import boto3
-import numpy as np
-import pandas as pd
-from datetime import datetime, timezone
-import matplotlib.pylab as plt
-from scipy.spatial.transform import Rotation as R
-import io
+from datetime import timezone
 from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_empty_images
 #%matplotlib widget
 
