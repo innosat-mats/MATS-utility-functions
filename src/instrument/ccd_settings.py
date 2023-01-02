@@ -19,3 +19,10 @@ def calc_col(ncoltot,bin,ncolskip=0,rounding='up'):
     if ncol*bin + ncolskip > 2047:
         raise ValueError('Reading outside of CCD')
     return ncol
+
+def calc_row_and_col(nrowtot,rowbin,nrowskip,ncoltot,colbin,ncolskip,rounding='up'):
+
+    nrow = calc_row(nrowtot,rowbin,nrowskip,rounding)
+    ncol = calc_col(ncoltot,colbin,ncolskip,rounding) - 1 #-1 from software ICD
+
+    return nrow, ncol
