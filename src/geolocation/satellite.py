@@ -205,4 +205,23 @@ def findtangent(t,pos,FOV):
 
 def findpitch (th,t,pos,yaw,rotmatrix):
     res=minimize_scalar(funpitch,args=(t,th,pos,yaw,rotmatrix),method="Bounded",bounds=(np.deg2rad(-30),np.deg2rad(-10)))
-    return res.x    
+    return res.x
+
+def angle2limbalt(theta,deg=False,satalt=591e3,z_limb=90e3):
+    if deg:
+        theta = np.deg2rad(theta)
+
+    R_e = 6371e3
+    z_limb = 90e3
+    l_limb = np.sqrt((R_e+satalt)**2 - (R_e+z_limb)**2)
+    z_alt = 2*np.tan(theta/2)*l_limb
+    return z_alt
+
+def limbalt2angle(z_alt,deg=False,satalt=591e3):
+    R_e = 6371e3
+    z_limb = 90e3
+    l_limb = np.sqrt((R_e+satalt)**2 - (R_e+z_limb)**2)
+    theta = 2*np.arctan(z_alt/2/l_limb)
+    if deg:
+        theta = np.rad2deg(theta)
+    return theta
