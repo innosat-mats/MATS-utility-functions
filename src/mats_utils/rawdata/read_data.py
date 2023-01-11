@@ -1,7 +1,7 @@
 from pyarrow import fs
 import boto3
 from datetime import timezone
-from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_empty_images
+from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows
 #%matplotlib widget
 
 def read_MATS_data(start_date,end_date):
@@ -21,5 +21,5 @@ def read_MATS_data(start_date,end_date):
     
     ccd_data = read_ccd_data_in_interval(start_date,end_date,"ops-payload-level1a-v0.2",s3)
     add_ccd_item_attributes(ccd_data)
-    remove_empty_images(ccd_data)
+    remove_faulty_rows(ccd_data)
     return (ccd_data)

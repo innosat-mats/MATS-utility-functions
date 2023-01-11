@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from retrieval.averaging_kernels import Kernel, Grid
+from mats_utils.retrieval.averaging_kernels import Kernel, Grid
 
 def test_1d_avk():
 

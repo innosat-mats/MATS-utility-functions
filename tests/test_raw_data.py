@@ -1,7 +1,7 @@
-import rawdata.time_tools as time_tools
-import rawdata.read_data as read_data
+import mats_utils.rawdata.time_tools as time_tools
+import mats_utils.rawdata.read_data as read_data
 import datetime as DT
-import plotting.plotCCD as pltCCD
+import mats_utils.plotting.plotCCD as pltCCD
 import pandas as pd
 from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,read_ccd_items_in_interval,dataframe_to_ccd_items
 
