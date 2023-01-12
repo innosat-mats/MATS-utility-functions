@@ -33,6 +33,7 @@ def plot_schedule(df,column='name'):
     for x1, x2, y in zip(df["start_date"], df["end_date"], df[column]):
         plt.plot([x1, x2], [y, y],linewidth=3)
     plt.title('Payload schedule')
-
+    plt.grid()
+    plt.rcParams["figure.figsize"] = (20,5)
     plt.show()
     

@@ -1,4 +1,4 @@
-from mats_util.geolocation import satellite as satellite
+from mats_utils.geolocation import satellite as satellite
 import datetime as DT
 
 def test_satellite():
