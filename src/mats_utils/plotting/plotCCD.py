@@ -4,7 +4,7 @@ import sys
 import os
 import cartopy.crs as ccrs
 import pandas as pd
-from geolocation import satellite as satellite
+from mats_utils.geolocation import satellite as satellite
 from cartopy.feature.nightshade import Nightshade
 
 
@@ -181,7 +181,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
     ----------
     CCD_dataframe : DataFrame
         CCD_dataframe to be plotted.
-    outdir : str
+    outdir : str, optional
         path where images will be saved
     nstd : int, optional
         Number of standard deviations for cbar and histogram, by default 2
@@ -198,14 +198,15 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
     check_type(CCD_dataframe)
 
     for CCDno in range(0, 8):
-
+        
         CCDs = CCD_dataframe[CCD_dataframe['CCDSEL'] == CCDno]
 
         if len(CCDs) > 0:
-            outpath = f"{outdir}CCDSEL{str(CCDno)}"
+            if outdir != None:
+                outpath = f"{outdir}CCDSEL{str(CCDno)}"
 
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
+                if not os.path.exists(outpath):
+                    os.makedirs(outpath)
 
             for index, CCD in CCDs.iterrows():
 
@@ -259,7 +260,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
                 ax.set_xlabel('longitude [deg]')
                 ax.set_ylabel('latitude [deg]')
                 ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
-                ax.add_feature(Nightshade(CCD['EXP Date'], alpha=0.2))
+                ax.add_feature(Nightshade(CCD['EXPDate'], alpha=0.2))
                 ax.coastlines()
 
                 # plot CCD image
@@ -304,7 +305,6 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
                 ax2.legend(loc='upper right')
                 ax2.grid()
                 plt.savefig(f'{outpath}/{outname}.{format}', format=format)
-
                 fig.clear()
 
     return
