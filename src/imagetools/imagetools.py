@@ -29,8 +29,11 @@ def bin_image(image,nrbin,ncolbin):
 
     return binned
 
+
+
 def shift_image(CCDitem, image=None):
     """ 
+    This function should be removed! It is a copy of the one in grid_image. LM 230116
     Shift the images to account for the misalignment. 
     Or rather put the image on a common field of view with all other channels.
     Args:
@@ -43,15 +46,17 @@ def shift_image(CCDitem, image=None):
     """
     from mats_l1_processing.grid_image import get_shift
 
+    raise Exception ('Duplicated code to be removed - use from mats_l1_processing.grid_image import shift_image instead.')
+
     x_pos,y_pos = get_shift(CCDitem)
 
-    x_maximum=75 #156 This is the maximum shift, silly that it is hardcoded
-    y_maximum=192
-    x_rel=x_maximum-x_pos
-    y_rel=y_maximum-y_pos
+    x_maximum=100 #75 This is the maximum shift, silly that it is hardcoded
+    y_maximum=200 #192
+    x_rel=round(x_maximum-x_pos)
+    y_rel=round(y_maximum-y_pos)
 
 
-    image_common_fov = np.empty((720,2300))
+    image_common_fov = np.empty((511+y_maximum,2048+x_maximum))#((720,2300))
     error_flag= np.ones(image_common_fov.shape, dtype=np.uint16)
     image_common_fov[:] = np.nan
     image_common_fov[y_rel:y_rel+image.shape[0], x_rel:x_rel+image.shape[1]]=image
