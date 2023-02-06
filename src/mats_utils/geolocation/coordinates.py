@@ -1,12 +1,14 @@
 from skyfield import api as sfapi
 from skyfield.framelib import itrs
 from skyfield.positionlib import Geocentric
+from skyfield.units import Distance
 from scipy.spatial.transform import Rotation as R
 from scipy.interpolate import CubicSpline
 from mats_l1_processing.pointing import pix_deg
 import numpy as np
 
-def col_heights(ccditem, x, nheights=None,spline=False):
+
+def col_heights(ccditem, x, nheights=None, spline=False):
     if nheights == None:
         nheights = ccditem['NROW']
     d = ccditem['EXP Date']
@@ -23,11 +25,25 @@ def col_heights(ccditem, x, nheights=None,spline=False):
         los = R.from_euler('XYZ', [0, y, xdeg], degrees=True).apply([1, 0, 0])
         ecivec = quat.apply(qprime.apply(los))
         ths[iy] = findtangent(t, ecipos, ecivec).fun
-    if spline : return CubicSpline(ypixels, ths)
-    else : return ths
+    if spline:
+        return CubicSpline(ypixels, ths)
+    else:
+        return ths
+
 
 def heights(ccditem):
-    ths=np.zeros(ccditem['NROW'],ccditem['NCOL']+1)
+    ths = np.zeros(ccditem['NROW'], ccditem['NCOL']+1)
     for col in range(ccditem['NCOL']+1):
-        ths[col,:]=col_heights(ccditem,col)
-    return ths   
+        ths[col, :] = col_heights(ccditem, col)
+    return ths
+
+
+def satpos(ccditem):
+    ecipos = ccditem['afsGnssStateJ2000'][0:3]
+    d = ccditem['EXP Date']
+    ts = sfapi.load.timescale()
+    t = ts.from_datetime(d)
+    satpos = Geocentric(position_au=Distance(
+        m=ccditem['afsGnssStateJ2000'][0:3]).au, t=t)
+    satlat, satlong, satheight = satpos.frame_latlon(itrs)
+    return (satlat.degrees, satlong.degrees, satheight.m)
