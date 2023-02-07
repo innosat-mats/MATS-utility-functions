@@ -5,6 +5,7 @@ from skyfield.units import Distance
 from scipy.spatial.transform import Rotation as R
 from scipy.interpolate import CubicSpline
 from mats_l1_processing.pointing import pix_deg
+from tangentlib import *
 import numpy as np
 
 
@@ -39,6 +40,18 @@ def heights(ccditem):
 
 
 def satpos(ccditem):
+    """Function giving the GPS position in lat lon alt.. 
+
+   
+    Arguments:
+        ccditem or dataframe with the 'afsGnssStateJ2000'
+
+    Returns:
+        satlat: latitude of satellite (degrees)
+        satlon: longitude of satellite (degrees)
+        satheight: Altitude in metres 
+        
+    """
     ecipos = ccditem['afsGnssStateJ2000'][0:3]
     d = ccditem['EXP Date']
     ts = sfapi.load.timescale()
