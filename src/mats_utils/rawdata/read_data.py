@@ -25,7 +25,7 @@ def read_MATS_data(start_date,end_date,version='0.4',level='1a'):
         add_ccd_item_attributes(ccd_data)
         remove_faulty_rows(ccd_data)
 
-    if len(ccd_data) == 0
+    if len(ccd_data) == 0:
         raise Warning('Dataset is empty check version or time interval')
 
     return (ccd_data)
