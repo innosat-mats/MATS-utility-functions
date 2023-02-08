@@ -1,19 +1,32 @@
-from skyfield import api as sfapi
 from skyfield.framelib import itrs
-from skyfield.positionlib import Geocentric
+from skyfield.positionlib import Geocentric, ICRF
+from skyfield.units import Distance
+from numpy.linalg import norm
+from scipy.optimize import minimize_scalar
+from skyfield.api import wgs84 
+from skyfield.api import load
 from skyfield.units import Distance
 from scipy.spatial.transform import Rotation as R
 from scipy.interpolate import CubicSpline
 from mats_l1_processing.pointing import pix_deg
-from tangentlib import *
 import numpy as np
+
+def funheight(s, t, pos, FOV):
+    newp = pos + s * FOV
+    newp = ICRF(Distance(m=newp).au, t=t, center=399)
+    return wgs84.subpoint(newp).elevation.m
+
+
+def findtangent(t, pos, FOV):
+    res = minimize_scalar(funheight, args=(t, pos, FOV), bracket=(1e5, 3e5))
+    return res
 
 
 def col_heights(ccditem, x, nheights=None, spline=False):
     if nheights == None:
         nheights = ccditem['NROW']
     d = ccditem['EXP Date']
-    ts = sfapi.load.timescale()
+    ts = load.timescale()
     t = ts.from_datetime(d)
     ecipos = ccditem['afsGnssStateJ2000'][0:3]
     q = ccditem['afsAttitudeState']
@@ -33,9 +46,9 @@ def col_heights(ccditem, x, nheights=None, spline=False):
 
 
 def heights(ccditem):
-    ths = np.zeros(ccditem['NROW'], ccditem['NCOL']+1)
+    ths = np.zeros([ccditem['NROW'], ccditem['NCOL']+1])
     for col in range(ccditem['NCOL']+1):
-        ths[col, :] = col_heights(ccditem, col)
+        ths[ :,col] = col_heights(ccditem, col)
     return ths
 
 
