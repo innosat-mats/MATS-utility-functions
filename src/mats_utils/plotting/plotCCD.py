@@ -9,7 +9,10 @@ from cartopy.feature.nightshade import Nightshade
 
 
 flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
-
+image_var = {'l1a': 'IMAGE', 'l1b': 'ImageCalibrated'}
+channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
+              '4': 'IR2', '5': 'UV1', '6': 'UV2',
+              '7': 'NADIR'}
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
@@ -28,6 +31,29 @@ def check_type(CCD_dataframe):
         sys.exit("CCD_dataframe need to be converted to DataFrame!")
     
     return type(CCD_dataframe)
+
+def check_level(CCD_dataframe):
+    """Checks level of data to name variables accordingly
+
+    Parameters
+    ----------
+    CCD_dataframe : any
+        CCD_dataframe
+    
+    Returns:
+    ----------
+    image_str: str
+        image variable name
+
+    """
+
+    if 'IMAGE' in CCD_dataframe.keys():
+        lvl_str = 'l1a'
+    if 'ImageCalibrated' in CCD_dataframe.keys():
+        lvl_str = 'l1b'
+    
+    return lvl_str
+
 
 def plot_image(CCD,fig=None, outpath=None, nstd=2, cmap='inferno', custom_cbar=False,
                 ranges=[0, 1000], format='png'):
@@ -58,11 +84,17 @@ def plot_image(CCD,fig=None, outpath=None, nstd=2, cmap='inferno', custom_cbar=F
     if fig == None:
         fig = plt.figure(figsize=(12, 3))
 
+    # check level of data
+    lvl = check_level(CCD)
+
     # save parameters for plot
-    channel = CCD['channel']
-    image = CCD['IMAGE']
+    image = CCD[image_var[lvl]]
+    if lvl == 'l1b':
+        image = np.stack(image)
+
     texpms = CCD['TEXPMS']
     exp_date = CCD['EXPDate'].strftime("%Y-%m-%dT%H:%M:%S:%f")
+    channel = channel_var[str(CCD['CCDSEL'])]
 
     # filename
     outname = f"{CCD['ImageName'][:-4]}"
@@ -85,7 +117,7 @@ def plot_image(CCD,fig=None, outpath=None, nstd=2, cmap='inferno', custom_cbar=F
         TPLT, TPsza, TPssa) = satellite.get_position(CCD['EXPDate'])
 
     # plot CCD image
-    if channel in flipped_CCDs:
+    if (channel in flipped_CCDs) and (lvl == 'l1a'):
         nrows = np.arange(0, CCD['NROW'])
         ncols = np.arange(0, CCD['NCOL']+1)
         plt.pcolormesh(np.flip(ncols), nrows,
@@ -105,7 +137,7 @@ def plot_image(CCD,fig=None, outpath=None, nstd=2, cmap='inferno', custom_cbar=F
     plt.figtext(0.25, 0.8, f'TPlat, TPlon: ({TPlat:.6}, {TPlon:.6})',
                 fontsize=10, color='white')
 
-    plt.title(f'ch: {channel}; time: {exp_date}; TEXPMS: {texpms}')
+    plt.title(f'ch: {channel} ({lvl}); time: {exp_date}; TEXPMS: {texpms}')
     plt.tight_layout()
 
     # save figure
@@ -114,7 +146,7 @@ def plot_image(CCD,fig=None, outpath=None, nstd=2, cmap='inferno', custom_cbar=F
         fig.clear()
 
 
-def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
+def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 ranges=[0, 1000], format='png'):
     """Generates plots from CCD_dataframe with basic orbit parameters included.
     Images will be sorted in folders based on CCDSEL in directory specified.
@@ -170,7 +202,7 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False
 
 
 
-def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
+def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                ranges=[0, 1000], format='png'):
     """
        Generates plots from CCD items: image, histogram and map.
@@ -210,9 +242,15 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
 
             for index, CCD in CCDs.iterrows():
 
+                # check level of data
+                lvl = check_level(CCD)
+
                 # save parameters for plot
-                channel = CCD['channel']
-                image = CCD['IMAGE']
+                image = CCD[image_var[lvl]]
+                if lvl == 'l1b':
+                    image = np.stack(image)
+
+                channel = channel_var[str(CCD['CCDSEL'])]
                 texpms = CCD['TEXPMS']
                 exp_date = CCD['EXPDate'].strftime("%Y-%m-%dT%H:%M:%S:%f")
 
@@ -264,7 +302,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='inferno', custom_cbar=False,
                 ax.coastlines()
 
                 # plot CCD image
-                if channel in flipped_CCDs:
+                if (channel in flipped_CCDs) and (lvl == 'l1a'):
                     nrows = np.arange(0, CCD['NROW'])
                     ncols = np.arange(0, CCD['NCOL']+1)
                     img = ax1.pcolormesh(np.flip(ncols), nrows,
