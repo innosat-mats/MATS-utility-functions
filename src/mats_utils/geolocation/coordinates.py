@@ -67,7 +67,7 @@ def satpos(ccditem):
     """
     ecipos = ccditem['afsGnssStateJ2000'][0:3]
     d = ccditem['EXP Date']
-    ts = sfapi.load.timescale()
+    ts =load.timescale()
     t = ts.from_datetime(d)
     satpos = Geocentric(position_au=Distance(
         m=ccditem['afsGnssStateJ2000'][0:3]).au, t=t)
