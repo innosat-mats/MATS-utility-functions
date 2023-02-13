@@ -150,7 +150,7 @@ def make_ths(CCD):
     return xpixels,ypixels,ths.T
 
 
-def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon):
+def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon, labels=True):
     """Generates a map
 
     Parameters
@@ -180,8 +180,9 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon):
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
                       linewidth=0.9, color='black',
                       alpha=0.5, linestyle='-')
-    gl.xlabels_top = True
-    gl.ylabels_left = True
+    gl.xlabels_top = labels
+    gl.xlabels_bottom = labels
+    gl.ylabels_left = labels
     gl.ylabels_right = False
     gl.xlines = True
     ax.set_xlabel('longitude [deg]')
@@ -499,10 +500,14 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
     for i in range(0,len(ax)):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
+        ax[i].set_title('  ')
 
     ax[8].remove()
     ax[7].remove()
-    ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
+    ax_cart = fig.add_subplot(3, 3, 9, projection=ccrs.PlateCarree())
+    ax_cart.set_yticklabels([])
+    ax_cart.set_xticklabels([])
+
     #ax_cart.xlabel('test')
 
     if outdir is not None:
@@ -518,7 +523,11 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         TPlat, TPlon,
         TPLT, TPsza, TPssa) = calculate_geo(CCD)
 
+        # animation stuff
         ax[CCD['CCDSEL'] - 1].clear()
+        ax[CCD['CCDSEL'] - 1].set_xticklabels([])
+        ax[CCD['CCDSEL'] - 1].set_yticklabels([])
+
         fig, ax[CCD['CCDSEL'] - 1], img= plot_image(CCD, ax[CCD['CCDSEL'] - 1], fig, outdir,
                 nstd, cmap, custom_cbar,
                 ranges, format, save=False, fontsize=10)
@@ -526,7 +535,9 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         if CCD['CCDSEL'] == 1:
             ax_cart.remove()
             ax_cart = fig.add_subplot(3, 3, 9, projection=ccrs.PlateCarree())
-            generate_map(CCD, fig, ax_cart, satlat, satlon, TPlat, TPlon)
+            ax_cart.set_yticklabels([])
+            ax_cart.set_xticklabels([])
+            generate_map(CCD, fig, ax_cart, satlat, satlon, TPlat, TPlon,labels=False)
 
         save_figure(outpath, CCD, format,date_name=True)
 
