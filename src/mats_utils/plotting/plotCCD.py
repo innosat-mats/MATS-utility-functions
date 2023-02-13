@@ -303,7 +303,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
                             vmax=vmax, vmin=vmin)
 
     # add heights
-    if lvl == 'l1b':
+    if lvl == 'l1b' and (CCD['CCDSEL'] != 7):
         CS = ax.contour(*make_ths(CCD), [50000,
                         60000, 70000, 80000, 90000,
                         100000, 110000,200000,250000,300000],
