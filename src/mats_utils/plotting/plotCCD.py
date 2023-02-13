@@ -307,7 +307,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
         CS = ax.contour(*make_ths(CCD), [50000,
                         60000, 70000, 80000, 90000,
                         100000, 110000,200000,250000,300000],
-                        colors='w')
+                        colors='w', alpha=0.2)
         ax.clabel(CS, inline=True)
 
     # add title
