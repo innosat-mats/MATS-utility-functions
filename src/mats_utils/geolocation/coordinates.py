@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation as R
 from scipy.interpolate import CubicSpline
 from mats_l1_processing.pointing import pix_deg
 import numpy as np
+import datetime as DT
 
 def funheight(s, t, pos, FOV):
     newp = pos + s * FOV
@@ -25,7 +26,7 @@ def findtangent(t, pos, FOV):
 def col_heights(ccditem, x, nheights=None, spline=False):
     if nheights == None:
         nheights = ccditem['NROW']
-    d = ccditem['EXP Date']
+    d = ccditem['EXPDate']
     ts = load.timescale()
     t = ts.from_datetime(d)
     ecipos = ccditem['afsGnssStateJ2000'][0:3]
@@ -66,10 +67,71 @@ def satpos(ccditem):
         
     """
     ecipos = ccditem['afsGnssStateJ2000'][0:3]
-    d = ccditem['EXP Date']
+    d = ccditem['EXPDate']
     ts =load.timescale()
     t = ts.from_datetime(d)
-    satpos = Geocentric(position_au=Distance(
-        m=ccditem['afsGnssStateJ2000'][0:3]).au, t=t)
-    satlat, satlong, satheight = satpos.frame_latlon(itrs)
+    satpo = Geocentric(position_au=Distance(
+        m=ecipos).au, t=t)
+    satlat, satlong, satheight = satpo.frame_latlon(itrs)
     return (satlat.degrees, satlong.degrees, satheight.m)
+
+def TPpos(ccditem):
+    """
+    Function giving the GPS TP in lat lon alt.. 
+
+   
+    Arguments:
+        ccditem or dataframe with the 'afsTangentPointECI'
+
+    Returns:
+        TPlat: latitude of satellite (degrees)
+        TPlon: longitude of satellite (degrees)
+        TPheight: Altitude in metres 
+        
+    """
+    eci=ccditem['afsTangentPointECI']
+    d = ccditem['EXPDate']
+    ts =load.timescale()
+    t = ts.from_datetime(d)
+    TPpos = Geocentric(position_au=Distance(
+        m=eci).au, t=t)
+    TPlat, TPlong, TPheight = TPpos.frame_latlon(itrs)
+    return (TPlat.degrees, TPlong.degrees, TPheight.m)
+
+def angles(ccditem):
+    """
+    Function giving various angles.. 
+
+   
+    Arguments:
+        ccditem or dataframe with the 'EXPDate'
+
+    Returns:
+        nadir_sza: solar zenith angle at satelite position (degrees)
+        TPsza: solar zenith angle at TP position (degrees)
+        TPssa: solar scattering angle at TP position (degrees), 
+        tpLT: Local time at the TP (string)
+        
+    """
+    planets=load('de421.bsp')
+    earth,sun,moon= planets['earth'], planets['sun'],planets['moon']
+   
+    d = ccditem['EXPDate']
+    ts =load.timescale()
+    t = ts.from_datetime(d)
+    satlat, satlon, satheight = satpos(ccditem)
+    TPlat, TPlon, TPheight = TPpos(ccditem) 
+    sat_pos=earth + wgs84.latlon(satlat, satlon, elevation_m=satheight)
+    sundir=sat_pos.at(t).observe(sun).apparent()
+    obs=sundir.altaz()
+    nadir_sza = (90-obs[0].degrees) #nadir solar zenith angle
+    TP_pos=earth + wgs84.latlon(TPlat, TPlon, elevation_m=TPheight)
+    tpLT = ((d+DT.timedelta(seconds=TPlon/15*60*60)).strftime('%H:%M:%S')) #15*60*60 comes from degrees per hour
+
+    FOV=(TP_pos-sat_pos).at(t).position.m
+    FOV=FOV/norm(FOV)
+    sundir=TP_pos.at(t).observe(sun).apparent()
+    obs=sundir.altaz()
+    TPsza = (90-obs[0].degrees)
+    TPssa = (np.rad2deg(np.arccos(np.dot(FOV,sundir.position.m/norm(sundir.position.m)))))
+    return nadir_sza, TPsza, TPssa, tpLT
