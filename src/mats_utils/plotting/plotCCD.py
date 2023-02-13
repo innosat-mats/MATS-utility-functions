@@ -11,8 +11,9 @@ from cartopy.feature.nightshade import Nightshade
 flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
 image_var = {'l1a': 'IMAGE', 'l1b': 'ImageCalibrated'}
 channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
-              '4': 'IR2', '5': 'UV1', '6': 'UV2',
-              '7': 'NADIR'}
+               '4': 'IR2', '5': 'UV1', '6': 'UV2',
+               '7': 'NADIR'}
+
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
@@ -27,10 +28,12 @@ def check_type(CCD_dataframe):
         (type): Datatype of dataframe
     """
 
-    if isinstance(CCD_dataframe, (pd.core.frame.DataFrame, pd.core.series.Series)) is False:
+    if isinstance(CCD_dataframe, (pd.core.frame.DataFrame,
+                                  pd.core.series.Series)) is False:
         sys.exit("CCD_dataframe need to be converted to DataFrame!")
-    
+
     return type(CCD_dataframe)
+
 
 def check_level(CCD_dataframe):
     """Checks level of data to name variables accordingly
@@ -39,7 +42,7 @@ def check_level(CCD_dataframe):
     ----------
     CCD_dataframe : any
         CCD_dataframe
-    
+
     Returns:
     ----------
     image_str: str
@@ -51,22 +54,72 @@ def check_level(CCD_dataframe):
         lvl_str = 'l1a'
     if 'ImageCalibrated' in CCD_dataframe.keys():
         lvl_str = 'l1b'
-    
+
     return lvl_str
 
+
 def calculate_geo(CCD):
+    """calculates orbital parameters
+
+    Parameters
+    ----------
+    CCD : CCDitem
+        measurement
+
+    Returns
+    -------
+    _type_
+        positions
+    """
 
     return satellite.get_position(CCD['EXPDate'])
 
+
 def save_figure(outpath, CCD, format):
+    """Saves figure to outpath
+
+    Parameters
+    ----------
+    outpath : str
+        save path
+    CCD : CCDitem
+        measurement
+    format : str
+        format of saved figure
+    """
 
     # filename
     outname = f"{CCD['ImageName'][:-4]}"
 
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
 
+
 def calculate_range(image, ranges, nstd, custom_cbar):
-    
+    """Calculates ranges, means and std
+
+    Parameters
+    ----------
+    image : array
+        image to compute from
+    ranges : array
+        if requested min max range
+    nstd : int
+        number of std dev
+    custom_cbar : bool
+        if false use nstd for ranges
+
+    Returns
+    -------
+    vmin : float
+        min point in range
+    vmax : float
+        max point in range
+    mean : float
+        mean of image
+    std : float
+        std dev of image
+    """
+
     # calc std and mean
     std = image.std()
     mean = image.mean()
@@ -78,15 +131,39 @@ def calculate_range(image, ranges, nstd, custom_cbar):
         vmax = mean+nstd*std
         vmin = mean-nstd*std
 
-    return vmin,vmax, mean, std
+    return vmin, vmax, mean, std
 
 
 def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon):
+    """Generates a map
+
+    Parameters
+    ----------
+    CCD : CCDitem
+        measurement
+    fig : fig
+        figure to plot in
+    ax : ax
+        axis to plot on
+    satlat : float
+        sat lat pos
+    satlon : float
+        sat lon pos
+    TPlat : float
+        tangent point lat
+    TPlon : float
+        tangent point lon
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
 
     # map settings
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                        linewidth=0.9, color='black',
-                        alpha=0.5, linestyle='-')
+                      linewidth=0.9, color='black',
+                      alpha=0.5, linestyle='-')
     gl.xlabels_top = True
     gl.ylabels_left = True
     gl.ylabels_right = False
@@ -99,25 +176,44 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon):
 
     # plot sat position and tangent point
     ax.scatter(satlon, satlat, s=10,
-                color='red', label='satellite pos.')
+               color='red', label='satellite pos.')
     ax.scatter(TPlon, TPlat, s=10,
-                color='green', label='TP pos.')
+               color='green', label='TP pos.')
     ax.legend(ncol=2, fontsize=7, loc='lower right')
 
     return fig, ax
 
-def generate_histogram(ax,image, ranges, nstd, custom_cbar):
-    
 
+def generate_histogram(ax, image, ranges, nstd, custom_cbar):
+    """Generates histogram based on image
+
+    Parameters
+    ----------
+    ax : axis
+        axis to plot on
+    image : _type_
+        image from which histogram will be generated
+    ranges : _type_
+        ranges for plot
+    nstd : _type_
+        number of standard deviations
+    custom_cbar : bool
+        if custom ranges
+
+    Returns
+    -------
+    ax : axes
+        axis with histogram
+    """
     # calculate means
     vmin, vmax, mean, std = calculate_range(image, ranges, nstd, custom_cbar)
 
     nbins = int(1 + np.ceil(np.log2(len(image.flatten()))))
     ax.hist(image.flatten(), bins=nbins, alpha=0.6,
-                density=True, range=[mean-nstd*std, mean+nstd*std])
+            density=True, range=[mean-nstd*std, mean+nstd*std])
     ax.set_xlabel('counts')
     ax.axvline(x=mean, label='mean',
-                linestyle='--', linewidth=1.5)
+               linestyle='--', linewidth=1.5)
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
     ax.legend(loc='upper right')
     ax.grid()
@@ -125,8 +221,9 @@ def generate_histogram(ax,image, ranges, nstd, custom_cbar):
     return ax
 
 
-def plot_image(CCD,ax=None,fig=None,outpath=None, nstd=2, cmap='inferno', custom_cbar=False,
-               ranges=[0, 1000], format='png',save=True):
+def plot_image(CCD, ax=None, fig=None, outpath=None,
+               nstd=2, cmap='inferno', custom_cbar=False,
+               ranges=[0, 1000], format='png', save=True):
     """
     Function to plot single MATS image
 
@@ -148,10 +245,10 @@ def plot_image(CCD,ax=None,fig=None,outpath=None, nstd=2, cmap='inferno', custom
         limits for custom cbar, by default [0,1000]
     format : str, optional
         format for files, by default 'png'
-    
+
     """
 
-    if (fig == None) & (ax == None):
+    if (fig is None) & (ax is None):
         fig = plt.figure(figsize=(12, 3))
         ax = plt.axes()
 
@@ -165,9 +262,9 @@ def plot_image(CCD,ax=None,fig=None,outpath=None, nstd=2, cmap='inferno', custom
 
     # geolocation stuff
     (satlat, satlon, satLT,
-    nadir_sza, nadir_mza,
-    TPlat, TPlon,
-    TPLT, TPsza, TPssa) = calculate_geo(CCD)
+     nadir_sza, nadir_mza,
+     TPlat, TPlon,
+     TPLT, TPsza, TPssa) = calculate_geo(CCD)
 
     texpms = CCD['TEXPMS']
     exp_date = CCD['EXPDate'].strftime("%Y-%m-%dT%H:%M:%S:%f")
@@ -188,16 +285,15 @@ def plot_image(CCD,ax=None,fig=None,outpath=None, nstd=2, cmap='inferno', custom
         img = ax.pcolormesh(image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
-    #plt.title(f'ch: {channel} ({lvl}); time: {exp_date}; TEXPMS: {texpms}')
     ax.set_title(f'ch: {channel}; time: '
-                              + f'{exp_date}; TEXPMS: {texpms}')
+                 + f'{exp_date}; TEXPMS: {texpms}')
 
-    if save:   
+    if save:
         # print out additional information
         plt.figtext(0.1, 0.8, f'tpSZA: {TPsza:.6}',
                     fontsize=10, color='white')
         plt.figtext(0.5, 0.8, (f'satlat, satlon: ({satlat:.6}' +
-                            f', {satlon:.6})'),
+                               f', {satlon:.6})'),
                     fontsize=10, color='white')
         plt.figtext(0.25, 0.8, f'TPlat, TPlon: ({TPlat:.6}, {TPlon:.6})',
                     fontsize=10, color='white')
@@ -255,9 +351,9 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 os.makedirs(outpath)
         else:
             continue
-      
+
         if dftype == pd.core.series.Series:
-            plot_image(CCDs, fig=fig, ax=ax, outpath=outpath, 
+            plot_image(CCDs, fig=fig, ax=ax, outpath=outpath,
                        nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
                        ranges=ranges, format=format)
         else:
@@ -294,11 +390,11 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
     check_type(CCD_dataframe)
 
     for CCDno in range(0, 8):
-        
+
         CCDs = CCD_dataframe[CCD_dataframe['CCDSEL'] == CCDno]
 
         if len(CCDs) > 0:
-            if outdir != None:
+            if outdir is not None:
                 outpath = f"{outdir}CCDSEL{str(CCDno)}"
 
                 if not os.path.exists(outpath):
@@ -313,10 +409,6 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 image = CCD[image_var[lvl]]
                 if lvl == 'l1b':
                     image = np.stack(image)
-
-                channel = channel_var[str(CCD['CCDSEL'])]
-                texpms = CCD['TEXPMS']
-                exp_date = CCD['EXPDate'].strftime("%Y-%m-%dT%H:%M:%S:%f")
 
                 # geolocation stuff
                 (satlat, satlon, satLT,
@@ -341,15 +433,12 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                                   satlon, TPlat, TPlon)
 
                 # plot CCD image
-                
                 fig, ax1, img = plot_image(CCD, ax1, fig, outpath=outdir,
                                            nstd=nstd, cmap=cmap,
                                            custom_cbar=custom_cbar,
                                            ranges=ranges, format=format,
                                            save=False)
 
-                #ax1.set_title(f'ch: {channel}; time: '
-                #              + f'{exp_date}; TEXPMS: {texpms}')
                 fig.colorbar(img, ax=ax1)
 
                 # print out additional information
