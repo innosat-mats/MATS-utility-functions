@@ -54,6 +54,10 @@ def check_level(CCD_dataframe):
     
     return lvl_str
 
+def calculate_geo(CCD):
+
+    return satellite.get_position(CCD['EXPDate'])
+
 def save_figure(outpath, CCD, format):
 
     # filename
@@ -75,6 +79,51 @@ def calculate_range(image, ranges, nstd, custom_cbar):
         vmin = mean-nstd*std
 
     return vmin,vmax, mean, std
+
+
+def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon):
+
+    # map settings
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                        linewidth=0.9, color='black',
+                        alpha=0.5, linestyle='-')
+    gl.xlabels_top = True
+    gl.ylabels_left = True
+    gl.ylabels_right = False
+    gl.xlines = True
+    ax.set_xlabel('longitude [deg]')
+    ax.set_ylabel('latitude [deg]')
+    ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
+    ax.add_feature(Nightshade(CCD['EXPDate'], alpha=0.2))
+    ax.coastlines()
+
+    # plot sat position and tangent point
+    ax.scatter(satlon, satlat, s=10,
+                color='red', label='satellite pos.')
+    ax.scatter(TPlon, TPlat, s=10,
+                color='green', label='TP pos.')
+    ax.legend(ncol=2, fontsize=7, loc='lower right')
+
+    return fig, ax
+
+def generate_histogram(ax,image, ranges, nstd, custom_cbar):
+    
+
+    # calculate means
+    vmin, vmax, mean, std = calculate_range(image, ranges, nstd, custom_cbar)
+
+    nbins = int(1 + np.ceil(np.log2(len(image.flatten()))))
+    ax.hist(image.flatten(), bins=nbins, alpha=0.6,
+                density=True, range=[mean-nstd*std, mean+nstd*std])
+    ax.set_xlabel('counts')
+    ax.axvline(x=mean, label='mean',
+                linestyle='--', linewidth=1.5)
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+    ax.legend(loc='upper right')
+    ax.grid()
+
+    return ax
+
 
 def plot_image(CCD,ax=None,fig=None,outpath=None, nstd=2, cmap='inferno', custom_cbar=False,
                ranges=[0, 1000], format='png',save=True):
@@ -131,32 +180,35 @@ def plot_image(CCD,ax=None,fig=None,outpath=None, nstd=2, cmap='inferno', custom
     if (channel in flipped_CCDs) and (lvl == 'l1a'):
         nrows = np.arange(0, CCD['NROW'])
         ncols = np.arange(0, CCD['NCOL']+1)
-        img=ax.pcolormesh(np.flip(ncols), nrows,
-                        image, cmap=cmap,
-                        vmax=vmax, vmin=vmin)
+        img = ax.pcolormesh(np.flip(ncols), nrows,
+                            image, cmap=cmap,
+                            vmax=vmax, vmin=vmin)
 
     else:
-        img=ax.pcolormesh(image, cmap=cmap,
-                        vmax=vmax, vmin=vmin)
+        img = ax.pcolormesh(image, cmap=cmap,
+                            vmax=vmax, vmin=vmin)
 
-    # print out additional information
-    plt.figtext(0.1, 0.8, f'tpSZA: {TPsza:.6}',
-                fontsize=10, color='white')
-    plt.figtext(0.5, 0.8, (f'satlat, satlon: ({satlat:.6}' +
+    #plt.title(f'ch: {channel} ({lvl}); time: {exp_date}; TEXPMS: {texpms}')
+    ax.set_title(f'ch: {channel}; time: '
+                              + f'{exp_date}; TEXPMS: {texpms}')
+
+    if save:   
+        # print out additional information
+        plt.figtext(0.1, 0.8, f'tpSZA: {TPsza:.6}',
+                    fontsize=10, color='white')
+        plt.figtext(0.5, 0.8, (f'satlat, satlon: ({satlat:.6}' +
                             f', {satlon:.6})'),
-                fontsize=10, color='white')
-    plt.figtext(0.25, 0.8, f'TPlat, TPlon: ({TPlat:.6}, {TPlon:.6})',
-                fontsize=10, color='white')
+                    fontsize=10, color='white')
+        plt.figtext(0.25, 0.8, f'TPlat, TPlon: ({TPlat:.6}, {TPlon:.6})',
+                    fontsize=10, color='white')
+        # save figure
+        plt.tight_layout()
+        save_figure(outpath, CCD, format)
 
-    plt.title(f'ch: {channel} ({lvl}); time: {exp_date}; TEXPMS: {texpms}')
-    plt.tight_layout()
-
-    # save image or return image to figure
-    if save:
-        save_figure(outpath,CCD,format)
         return
     else:
-        return fig,ax,img
+        return fig, ax, img
+
 
 def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 ranges=[0, 1000], format='png'):
@@ -197,51 +249,23 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
         else:
             raise TypeError('Invalid dataframe')
 
-
         if len(CCDs) > 0:
             outpath = f"{outdir}CCDSEL{str(CCDno)}"
             if not os.path.exists(outpath):
                 os.makedirs(outpath)
         else:
             continue
-        
+      
         if dftype == pd.core.series.Series:
-            plot_image(CCDs, fig=fig, ax=ax, outpath=outpath, nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
-                ranges=ranges, format=format)
+            plot_image(CCDs, fig=fig, ax=ax, outpath=outpath, 
+                       nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
+                       ranges=ranges, format=format)
         else:
-            for index,CCD in CCDs.iterrows():
-                plot_image(CCD, ax,fig=fig,outpath=outpath, nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
-                    ranges=ranges, format=format)
+            for index, CCD in CCDs.iterrows():
+                plot_image(CCD, ax, fig=fig, outpath=outpath,
+                           nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
+                           ranges=ranges, format=format)
 
-def calculate_geo(CCD):
-
-    return satellite.get_position(CCD['EXPDate'])
-
-
-def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon):
-
-    # map settings
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                        linewidth=0.9, color='black',
-                        alpha=0.5, linestyle='-')
-    gl.xlabels_top = True
-    gl.ylabels_left = True
-    gl.ylabels_right = False
-    gl.xlines = True
-    ax.set_xlabel('longitude [deg]')
-    ax.set_ylabel('latitude [deg]')
-    ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
-    ax.add_feature(Nightshade(CCD['EXPDate'], alpha=0.2))
-    ax.coastlines()
-
-    # plot sat position and tangent point
-    ax.scatter(satlon, satlat, s=10,
-                color='red', label='satellite pos.')
-    ax.scatter(TPlon, TPlat, s=10,
-                color='green', label='TP pos.')
-    ax.legend(ncol=2, fontsize=7, loc='lower right')
-
-    return fig, ax
 
 def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                ranges=[0, 1000], format='png'):
@@ -296,9 +320,9 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
 
                 # geolocation stuff
                 (satlat, satlon, satLT,
-                nadir_sza, nadir_mza,
-                TPlat, TPlon,
-                TPLT, TPsza, TPssa) = calculate_geo(CCD)
+                 nadir_sza, nadir_mza,
+                 TPlat, TPlon,
+                 TPLT, TPsza, TPssa) = calculate_geo(CCD)
 
                 # generate figure and grid
                 fig = plt.figure(figsize=(10, 7))
@@ -313,14 +337,19 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                                        colspan=1, fig=fig)
 
                 # plot map in figure
-                ax = generate_map(CCD,fig,ax,satlat,satlon,TPlat,TPlon)
+                ax = generate_map(CCD, fig, ax, satlat,
+                                  satlon, TPlat, TPlon)
 
                 # plot CCD image
-                fig,ax1,img = plot_image(CCD,fig=fig,ax=ax1, outpath=outdir, nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
-                                ranges=ranges, format=format, save=False)
+                
+                fig, ax1, img = plot_image(CCD, ax1, fig, outpath=outdir,
+                                           nstd=nstd, cmap=cmap,
+                                           custom_cbar=custom_cbar,
+                                           ranges=ranges, format=format,
+                                           save=False)
 
-                ax1.set_title(f'ch: {channel}; time: '
-                              + f'{exp_date}; TEXPMS: {texpms}')
+                #ax1.set_title(f'ch: {channel}; time: '
+                #              + f'{exp_date}; TEXPMS: {texpms}')
                 fig.colorbar(img, ax=ax1)
 
                 # print out additional information
@@ -331,21 +360,12 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 plt.figtext(0.35, 0.03, f'tpSZA: {TPsza:.6}', fontsize=10)
                 plt.figtext(0.35, 0.06, f'tpSSA: {TPssa:.6}', fontsize=10)
 
-                # calculate means
-                vmin, vmax, mean, std = calculate_range(image, ranges, nstd, custom_cbar)
-
                 # plot histogram
-                nbins = int(1 + np.ceil(np.log2(len(image.flatten()))))
-                ax2.hist(image.flatten(), bins=nbins, alpha=0.6,
-                         density=True, range=[mean-nstd*std, mean+nstd*std])
-                ax2.set_xlabel('counts')
-                ax2.axvline(x=mean, label='mean',
-                            linestyle='--', linewidth=1.5)
-                ax2.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
-                ax2.legend(loc='upper right')
-                ax2.grid()
+                generate_histogram(ax2, image, ranges,
+                                   nstd, custom_cbar)
 
-                save_figure(outpath,CCD,format)
+                save_figure(outpath, CCD, format)
                 fig.clear()
+                plt.close()
 
     return
