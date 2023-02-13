@@ -7,7 +7,7 @@ import pandas as pd
 from mats_utils.geolocation import satellite as satellite
 from cartopy.feature.nightshade import Nightshade
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
+from mats_utils.geolocation import coordinates
 
 flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
 image_var = {'l1a': 'IMAGE', 'l1b': 'ImageCalibrated'}
@@ -138,6 +138,16 @@ def calculate_range(image, ranges, nstd, custom_cbar):
         vmin = mean-nstd*std
 
     return vmin, vmax, mean, std
+
+def make_ths(CCD):
+    xpixels = np.linspace(0, CCD['NCOL'], 5)
+    ypixels = np.linspace(0, CCD['NROW'], 10)
+
+    ths = np.zeros([xpixels.shape[0], ypixels.shape[0]])
+    #print (ths.shape)
+    for i,col in enumerate(xpixels): 
+        ths[i,:]=coordinates.col_heights(CCD,col,40,spline=True)(ypixels)
+    return xpixels,ypixels,ths.T
 
 
 def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon):
@@ -292,6 +302,15 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
         img = ax.pcolormesh(image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
+    # add heights
+    if lvl == 'l1b':
+        CS = ax.contour(*make_ths(CCD), [50000,
+                        60000, 70000, 80000, 90000,
+                        100000, 110000,200000,250000,300000],
+                        colors='w')
+        ax.clabel(CS, inline=True)
+
+    # add title
     ax.set_title(f'ch: {channel}; time: '
                  + f'{exp_date}; TEXPMS: {texpms}', fontsize=fontsize)
 
@@ -499,12 +518,10 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         TPlat, TPlon,
         TPLT, TPsza, TPssa) = calculate_geo(CCD)
 
+        ax[CCD['CCDSEL'] - 1].clear()
         fig, ax[CCD['CCDSEL'] - 1], img= plot_image(CCD, ax[CCD['CCDSEL'] - 1], fig, outdir,
                 nstd, cmap, custom_cbar,
                 ranges, format, save=False, fontsize=10)
-
-        #cbaxes = inset_axes(ax[CCD['CCDSEL'] - 1], width="30%", height="3%", loc=3) 
-        #cb=plt.colorbar(img,cax=cbaxes, orientation='horizontal')
 
         if CCD['CCDSEL'] == 1:
             ax_cart.remove()
@@ -512,6 +529,5 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
             generate_map(CCD, fig, ax_cart, satlat, satlon, TPlat, TPlon)
 
         save_figure(outpath, CCD, format,date_name=True)
-
 
     return
