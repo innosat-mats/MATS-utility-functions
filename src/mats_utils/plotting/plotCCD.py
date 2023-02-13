@@ -6,6 +6,7 @@ import cartopy.crs as ccrs
 import pandas as pd
 from mats_utils.geolocation import satellite as satellite
 from cartopy.feature.nightshade import Nightshade
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
 flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
@@ -75,7 +76,7 @@ def calculate_geo(CCD):
     return satellite.get_position(CCD['EXPDate'])
 
 
-def save_figure(outpath, CCD, format):
+def save_figure(outpath, CCD, format, date_name=False):
     """Saves figure to outpath
 
     Parameters
@@ -89,8 +90,13 @@ def save_figure(outpath, CCD, format):
     """
 
     # filename
-    outname = f"{CCD['ImageName'][:-4]}"
+    if date_name:
+        outname = CCD['EXPDate'].strftime("%Y%m%dT%H%M%S%f")
 
+    else:
+        outname = f"{CCD['ImageName'][:-4]}"
+
+    plt.tight_layout()
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
 
 
@@ -223,7 +229,8 @@ def generate_histogram(ax, image, ranges, nstd, custom_cbar):
 
 def plot_image(CCD, ax=None, fig=None, outpath=None,
                nstd=2, cmap='inferno', custom_cbar=False,
-               ranges=[0, 1000], format='png', save=True):
+               ranges=[0, 1000], format='png', save=True,
+               fontsize=10):
     """
     Function to plot single MATS image
 
@@ -286,7 +293,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
                             vmax=vmax, vmin=vmin)
 
     ax.set_title(f'ch: {channel}; time: '
-                 + f'{exp_date}; TEXPMS: {texpms}')
+                 + f'{exp_date}; TEXPMS: {texpms}', fontsize=fontsize)
 
     if save:
         # print out additional information
@@ -456,5 +463,55 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 save_figure(outpath, CCD, format)
                 fig.clear()
                 plt.close()
+
+    return
+
+
+def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
+                      custom_cbar=False,
+                      ranges=[0, 1000], format='png'):
+
+    check_type(CCD_dataframe)
+
+    fig, ax = plt.subplots(3, 3, figsize=(16, 9))
+    fig.patch.set_facecolor('lightgrey')
+    ax=ax.ravel()
+
+    for i in range(0,len(ax)):
+        ax[i].set_xticklabels([])
+        ax[i].set_yticklabels([])
+
+    ax[8].remove()
+    ax[7].remove()
+    ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
+    #ax_cart.xlabel('test')
+
+    if outdir is not None:
+        outpath = f"{outdir}ALL"
+
+        if not os.path.exists(outpath):
+            os.makedirs(outpath)
+
+    for index, CCD in CCD_dataframe.iterrows():
+
+        (satlat, satlon, satLT,
+        nadir_sza, nadir_mza,
+        TPlat, TPlon,
+        TPLT, TPsza, TPssa) = calculate_geo(CCD)
+
+        fig, ax[CCD['CCDSEL'] - 1], img= plot_image(CCD, ax[CCD['CCDSEL'] - 1], fig, outdir,
+                nstd, cmap, custom_cbar,
+                ranges, format, save=False, fontsize=10)
+
+        #cbaxes = inset_axes(ax[CCD['CCDSEL'] - 1], width="30%", height="3%", loc=3) 
+        #cb=plt.colorbar(img,cax=cbaxes, orientation='horizontal')
+
+        if CCD['CCDSEL'] == 1:
+            ax_cart.remove()
+            ax_cart = fig.add_subplot(3, 3, 9, projection=ccrs.PlateCarree())
+            generate_map(CCD, fig, ax_cart, satlat, satlon, TPlat, TPlon)
+
+        save_figure(outpath, CCD, format,date_name=True)
+
 
     return
