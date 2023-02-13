@@ -48,7 +48,7 @@ def collapsandplot(imagecube,collapsdim, ax, signallabel='', title=''):
         ax.legend()
         plt.tight_layout()
     elif collapsdim==1:
-        myindex=myindex1*CCDitem['NCBIN CCDColumns']#/7.6-125
+        myindex=myindex1*CCDitem['NCBINCCDColumns']#/7.6-125
         ax.plot(myindex, img_mean, label='mean')
 
         img_std=img_hmean.std(0)
@@ -71,18 +71,20 @@ def collapsandplot(imagecube,collapsdim, ax, signallabel='', title=''):
 
     return
 
-def create_imagecube(CCDitems, calibrated=False):
+def create_imagecube(CCDitems, image_specification='IMAGE'):
     """    
     Parameters
     ----------
     CCDitems : LIST of CCDitems
-    calibrated : BOOLEAN 
+    image_specification : STR IMAGE or image_calibrated supported 
 
     Returns
     -------
     3d ndarray with all images and time as the last dimension
 
     """
+    if image_specification!='IMAGE' and image_specification!='image_calibrated':
+        Warning('image_specification must be "IMAGE" or "image-calibrated"')
     imagelist=[]
     for CCDitem in CCDitems:
         image=CCDitem[image_specification]
