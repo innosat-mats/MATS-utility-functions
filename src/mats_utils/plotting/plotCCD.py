@@ -625,7 +625,8 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
             frames.append(plt.figtext(0.701, 0.255, f'v. {str(version)}', fontsize=11))
         if lvl == 'L1a':
             plt.figtext(0.70, 0.19, 'units: counts', weight='bold',fontsize= 11)
-
+        if lvl == 'L1b':
+            plt.figtext(0.70, 0.19, 'units: photons/nm', weight='bold',fontsize= 11)
         save_figure(outpath, CCD, format, filename=str(index))
 
         for i in range(0,len(frames)):
