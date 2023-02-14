@@ -498,7 +498,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 # print out additional information
                 plt.figtext(0.15, 0.03, f'nadirSZA: {nadir_sza:.6}',
                             fontsize=10)
-                plt.figtext(0.15, 0.06, f'nadirMZA: {nadir_mza:.6}',
+                plt.figtext(0.15, 0.06, f'tpLT: {TPlt}',
                             fontsize=10)
                 plt.figtext(0.35, 0.03, f'tpSZA: {TPsza:.6}', fontsize=10)
                 plt.figtext(0.35, 0.06, f'tpSSA: {TPssa:.6}', fontsize=10)
