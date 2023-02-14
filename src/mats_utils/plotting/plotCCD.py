@@ -11,7 +11,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mats_utils.geolocation import coordinates
 from matplotlib.artist import Artist
 
-flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
+flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2', 'NADIR']
 image_var = {'L1a': 'IMAGE', 'L1b': 'ImageCalibrated'}
 channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '4': 'IR2', '5': 'UV1', '6': 'UV2',
@@ -505,6 +505,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
     
+    # idle titles
     ax[0].set_title('IR1 (idle..)')
     ax[1].set_title('IR3 (idle..)')
     ax[2].set_title('UV1 (idle..)')
@@ -518,8 +519,6 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
     ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
     ax_cart.set_yticklabels([])
     ax_cart.set_xticklabels([])
-
-    #ax_cart.xlabel('test')
 
     if outdir is not None:
         outpath = f"{outdir}ALL"
@@ -535,7 +534,6 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         TPLT, TPsza, TPssa) = calculate_geo(CCD)
 
         # animation stuff
-
         if CCD['CCDSEL'] == 3:
             ax[1].clear()
             ax[1].set_xticklabels([])
