@@ -151,7 +151,7 @@ def make_ths(CCD):
         ths[i,:]=coordinates.col_heights(CCD,col,40,spline=True)(ypixels)
     return xpixels,ypixels,ths.T
 
-def update_plot_cbar(CCD, ax, fig, cbar,
+def update_plot_cbar(CCD, ax, fig, cbar, level,
                      outdir, nstd, cmap, custom_cbar,
                      ranges, format,
                      save=False, fontsize=10):
@@ -166,6 +166,12 @@ def update_plot_cbar(CCD, ax, fig, cbar,
     cbar.ax.xaxis.set_ticks_position('top')
     cbar.ax.tick_params(color='w')
     cbar.ax.tick_params(labelcolor='w')
+
+    if level == 'L1a':
+        ax.text(0.77, 0.06, 'counts', horizontalalignment='center',
+                transform=ax.transAxes, verticalalignment='center',color='w',
+                weight='bold')
+        #bbox=dict(facecolor='none', edgecolor='white', boxstyle='round,pad=0.5')
 
     return
 
@@ -530,7 +536,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
         img = ax[i].pcolormesh(x,y,Z)
-        cbaxes.append(inset_axes(ax[i], width="40%", height="3%", loc=8))
+        cbaxes.append(inset_axes(ax[i], width="40%", height="6%", loc=8))
         cbars.append(plt.colorbar(img, cax = cbaxes[i], orientation='horizontal'))
         cbars[i].set_ticks([])
 
@@ -565,25 +571,25 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
         # animation stuff (update plot and cbar) 
         if CCD['CCDSEL'] == 3:
-            update_plot_cbar(CCD, ax[1], fig, cbars[1],
+            update_plot_cbar(CCD, ax[1], fig, cbars[1], lvl,
                              outdir, nstd, cmap, custom_cbar,
                              ranges, format,
                              save=False, fontsize=10)
 
         elif CCD['CCDSEL'] == 2:
-            update_plot_cbar(CCD, ax[4], fig, cbars[4],
+            update_plot_cbar(CCD, ax[4], fig, cbars[4], lvl,
                              outdir, nstd, cmap, custom_cbar,
                              ranges, format,
                              save=False, fontsize=10)
         elif CCD['CCDSEL'] == 5:
-            update_plot_cbar(CCD, ax[2], fig, cbars[2],
+            update_plot_cbar(CCD, ax[2], fig, cbars[2], lvl,
                              outdir, nstd, cmap, custom_cbar,
                              ranges, format,
                              save=False, fontsize=10)
 
         else:
             update_plot_cbar(CCD, ax[CCD['CCDSEL'] - 1],
-                             fig, cbars[CCD['CCDSEL'] - 1],
+                             fig, cbars[CCD['CCDSEL'] - 1], lvl,
                              outdir, nstd, cmap, custom_cbar,
                              ranges, format,
                              save=False, fontsize=10)
