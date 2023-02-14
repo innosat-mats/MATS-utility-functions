@@ -4,7 +4,7 @@ import sys
 import os
 import cartopy.crs as ccrs
 import pandas as pd
-from mats_utils.geolocation import satellite as satellite
+from mats_utils.geolocation import coordinates as coordinates
 import cartopy
 from cartopy.feature.nightshade import Nightshade
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -75,8 +75,14 @@ def calculate_geo(CCD):
         positions
     """
 
-    return satellite.get_position(CCD['EXPDate'])
+    satlat, satlon, satheight = coordinates.satpos(CCD)
+    TPlat,TPlon,TPheight = coordinates.TPpos(CCD)
+    nadir_sza, TPsza, TPssa, TPlt = coordinates.angles(CCD)
 
+    return (satlat, satlon,
+            nadir_sza,
+            TPlat, TPlon,
+            TPsza, TPssa,TPlt)
 
 def save_figure(outpath, CCD, format, filename=None):
     """Saves figure to outpath
@@ -300,10 +306,10 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
         image = np.stack(image)
 
     # geolocation stuff
-    (satlat, satlon, satLT,
-     nadir_sza, nadir_mza,
+    (satlat, satlon,
+     nadir_sza,
      TPlat, TPlon,
-     TPLT, TPsza, TPssa) = calculate_geo(CCD)
+     TPsza, TPssa, TPlt) = calculate_geo(CCD)
 
     texpms = CCD['TEXPMS']
     exp_date = CCD['EXPDate'].strftime("%Y-%m-%dT%H:%M:%S:%f")
@@ -459,10 +465,10 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                     image = np.stack(image)
 
                 # geolocation stuff
-                (satlat, satlon, satLT,
-                 nadir_sza, nadir_mza,
+                (satlat, satlon,
+                 nadir_sza,
                  TPlat, TPlon,
-                 TPLT, TPsza, TPssa) = calculate_geo(CCD)
+                 TPsza, TPssa, TPlt) = calculate_geo(CCD)
 
                 # generate figure and grid
                 fig = plt.figure(figsize=(10, 7))
@@ -492,7 +498,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 # print out additional information
                 plt.figtext(0.15, 0.03, f'nadirSZA: {nadir_sza:.6}',
                             fontsize=10)
-                plt.figtext(0.15, 0.06, f'nadirMZA: {nadir_mza:.6}',
+                plt.figtext(0.15, 0.06, f'tpLT: {TPlt}',
                             fontsize=10)
                 plt.figtext(0.35, 0.03, f'tpSZA: {TPsza:.6}', fontsize=10)
                 plt.figtext(0.35, 0.06, f'tpSSA: {TPssa:.6}', fontsize=10)
@@ -558,10 +564,10 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
 
     for index, CCD in CCD_dataframe.iterrows():
 
-        (satlat, satlon, satLT,
-        nadir_sza, nadir_mza,
-        TPlat, TPlon,
-        TPLT, TPsza, TPssa) = calculate_geo(CCD)
+        (satlat, satlon,
+         nadir_sza,
+         TPlat, TPlon,
+         TPsza, TPssa, TPlt) = calculate_geo(CCD)
 
         # animation stuff (update plot and cbar) 
         if CCD['CCDSEL'] == 3:
@@ -602,7 +608,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         frames = []
         frames.append(plt.figtext(0.70, 0.04, f'nadirSZA: {nadir_sza:.4}',
                       fontsize=11))
-        frames.append(plt.figtext(0.70, 0.07, f'nadirMZA: {nadir_mza:.4}',
+        frames.append(plt.figtext(0.70, 0.07, f'tpLT: {TPlt}',
                       fontsize=11))
         frames.append(plt.figtext(0.85, 0.04, f'tpSZA: {TPsza:.4}',fontsize=11))
         frames.append(plt.figtext(0.85, 0.07, f'tpSSA: {TPssa:.4}',fontsize=11))
