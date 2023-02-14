@@ -508,7 +508,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
     return
 
 
-def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
+def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
                       custom_cbar=False,
                       ranges=[0, 1000], format='png', version=None):
 
@@ -529,7 +529,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
     for i in range(0,len(ax)-2):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
-        img = ax[i].pcolormesh(x,y,Z)
+        img = ax[i].pcolormesh(x,y,Z,cmap=cmap)
         cbaxes.append(inset_axes(ax[i], width="40%", height="6%", loc=8))
         cbars.append(plt.colorbar(img, cax = cbaxes[i], orientation='horizontal'))
         cbars[i].set_ticks([])
