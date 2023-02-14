@@ -621,8 +621,8 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
                     weight="bold"))
         frames.append(plt.figtext(0.76, 0.28, f'{lvl}', fontsize=11,
                     weight="bold"))
-        frames.append(plt.figtext(0.701, 0.255, f'v. {str(version)}', fontsize=11))
-
+        if version != None:
+            frames.append(plt.figtext(0.701, 0.255, f'v. {str(version)}', fontsize=11))
         if lvl == 'L1a':
             plt.figtext(0.70, 0.19, 'units: counts', weight='bold',fontsize= 11)
 
