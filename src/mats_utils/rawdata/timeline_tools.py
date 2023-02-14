@@ -3,7 +3,7 @@ import datetime as DT
 import matplotlib.pyplot as plt
 
 
-def load_schedule(filename):
+def load_schedule(filename='data/timeline_schedule.db'):
     """Loads a timeline schedule overview and returns dataframe
 
     Arguments:
