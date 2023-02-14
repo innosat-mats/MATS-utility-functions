@@ -504,7 +504,14 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
     for i in range(0,len(ax)):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
-        ax[i].set_title('  ')
+    
+    ax[0].set_title('IR1 (idle..)')
+    ax[1].set_title('IR3 (idle..)')
+    ax[2].set_title('UV1 (idle..)')
+    ax[3].set_title('IR2 (idle..)')
+    ax[4].set_title('IR4 (idle..)')
+    ax[5].set_title('UV2 (idle..)')
+    ax[6].set_title('NADIR (idle..)')
 
     ax[8].remove()
     ax[7].remove()
@@ -528,13 +535,40 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         TPLT, TPsza, TPssa) = calculate_geo(CCD)
 
         # animation stuff
-        ax[CCD['CCDSEL'] - 1].clear()
-        ax[CCD['CCDSEL'] - 1].set_xticklabels([])
-        ax[CCD['CCDSEL'] - 1].set_yticklabels([])
 
-        fig, ax[CCD['CCDSEL'] - 1], img= plot_image(CCD, ax[CCD['CCDSEL'] - 1], fig, outdir,
-                nstd, cmap, custom_cbar,
-                ranges, format, save=False, fontsize=10)
+        if CCD['CCDSEL'] == 3:
+            ax[1].clear()
+            ax[1].set_xticklabels([])
+            ax[1].set_yticklabels([])
+            fig, ax[1], img = plot_image(CCD, ax[1], fig, outdir,
+                                         nstd, cmap, custom_cbar,
+                                         ranges, format,
+                                         save=False, fontsize=10)
+        elif CCD['CCDSEL'] == 2:
+            ax[4].clear()
+            ax[4].set_xticklabels([])
+            ax[4].set_yticklabels([])
+            fig, ax[4], img = plot_image(CCD, ax[4], fig, outdir,
+                                nstd, cmap, custom_cbar,
+                                ranges, format,
+                                save=False, fontsize=10)
+
+        elif CCD['CCDSEL'] == 5:
+            ax[2].clear()
+            ax[2].set_xticklabels([])
+            ax[2].set_yticklabels([])
+            fig, ax[2], img = plot_image(CCD, ax[2], fig, outdir,
+                                nstd, cmap, custom_cbar,
+                                ranges, format,
+                                save=False, fontsize=10)
+
+        else:
+            ax[CCD['CCDSEL'] - 1].clear()
+            ax[CCD['CCDSEL'] - 1].set_xticklabels([])
+            ax[CCD['CCDSEL'] - 1].set_yticklabels([])
+            fig, ax[CCD['CCDSEL'] - 1], img= plot_image(CCD, ax[CCD['CCDSEL'] - 1], fig, outdir,
+                                                        nstd, cmap, custom_cbar,
+                                                        ranges, format, save=False, fontsize=10)
 
         if CCD['CCDSEL'] == 1:
             ax_cart.remove()
@@ -569,7 +603,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
                     weight="bold"))
         frames.append(plt.figtext(0.76, 0.28, f'{lvl}', fontsize=11,
                     weight="bold"))
-        frames.append(plt.figtext(0.70, 0.26, f'v{str(version)}', fontsize=11))
+        frames.append(plt.figtext(0.70, 0.26, f'v. {str(version)}', fontsize=11))
 
         save_figure(outpath, CCD, format, filename=str(index))
 
