@@ -5,12 +5,14 @@ import os
 import cartopy.crs as ccrs
 import pandas as pd
 from mats_utils.geolocation import satellite as satellite
+import cartopy
 from cartopy.feature.nightshade import Nightshade
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mats_utils.geolocation import coordinates
+from matplotlib.artist import Artist
 
 flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2']
-image_var = {'l1a': 'IMAGE', 'l1b': 'ImageCalibrated'}
+image_var = {'L1a': 'IMAGE', 'L1b': 'ImageCalibrated'}
 channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '4': 'IR2', '5': 'UV1', '6': 'UV2',
                '7': 'NADIR'}
@@ -52,9 +54,9 @@ def check_level(CCD_dataframe):
     """
 
     if 'IMAGE' in CCD_dataframe.keys():
-        lvl_str = 'l1a'
+        lvl_str = 'L1a'
     if 'ImageCalibrated' in CCD_dataframe.keys():
-        lvl_str = 'l1b'
+        lvl_str = 'L1b'
 
     return lvl_str
 
@@ -76,7 +78,7 @@ def calculate_geo(CCD):
     return satellite.get_position(CCD['EXPDate'])
 
 
-def save_figure(outpath, CCD, format, date_name=False):
+def save_figure(outpath, CCD, format, filename=None):
     """Saves figure to outpath
 
     Parameters
@@ -90,8 +92,8 @@ def save_figure(outpath, CCD, format, date_name=False):
     """
 
     # filename
-    if date_name:
-        outname = CCD['EXPDate'].strftime("%Y%m%dT%H%M%S%f")
+    if filename != None:
+        outname = filename
 
     else:
         outname = f"{CCD['ImageName'][:-4]}"
@@ -189,6 +191,7 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon, labels=True):
     ax.set_ylabel('latitude [deg]')
     ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
     ax.add_feature(Nightshade(CCD['EXPDate'], alpha=0.2))
+    ax.add_feature(cartopy.feature.OCEAN)
     ax.coastlines()
 
     # plot sat position and tangent point
@@ -275,7 +278,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
 
     # save parameters for plot
     image = CCD[image_var[lvl]]
-    if lvl == 'l1b':
+    if lvl == 'L1b':
         image = np.stack(image)
 
     # geolocation stuff
@@ -292,7 +295,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     vmin, vmax, mean, std = calculate_range(image, ranges, nstd, custom_cbar)
 
     # plot CCD image
-    if (channel in flipped_CCDs) and (lvl == 'l1a'):
+    if (channel in flipped_CCDs) and (lvl == 'L1a'):
         nrows = np.arange(0, CCD['NROW'])
         ncols = np.arange(0, CCD['NCOL']+1)
         img = ax.pcolormesh(np.flip(ncols), nrows,
@@ -304,7 +307,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
                             vmax=vmax, vmin=vmin)
 
     # add heights
-    if lvl == 'l1b' and (CCD['CCDSEL'] != 7):
+    if lvl == 'L1b' and (CCD['CCDSEL'] != 7):
         CS = ax.contour(*make_ths(CCD), [50000,
                         60000, 70000, 80000, 90000,
                         100000, 110000,200000,250000,300000],
@@ -434,7 +437,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
 
                 # save parameters for plot
                 image = CCD[image_var[lvl]]
-                if lvl == 'l1b':
+                if lvl == 'L1b':
                     image = np.stack(image)
 
                 # geolocation stuff
@@ -489,9 +492,10 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
 
 def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
                       custom_cbar=False,
-                      ranges=[0, 1000], format='png'):
+                      ranges=[0, 1000], format='png', version=None):
 
     check_type(CCD_dataframe)
+    lvl = check_level(CCD_dataframe)
 
     fig, ax = plt.subplots(3, 3, figsize=(16, 9))
     fig.patch.set_facecolor('lightgrey')
@@ -504,7 +508,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
     ax[8].remove()
     ax[7].remove()
-    ax_cart = fig.add_subplot(3, 3, 9, projection=ccrs.PlateCarree())
+    ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
     ax_cart.set_yticklabels([])
     ax_cart.set_xticklabels([])
 
@@ -534,11 +538,42 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
         if CCD['CCDSEL'] == 1:
             ax_cart.remove()
-            ax_cart = fig.add_subplot(3, 3, 9, projection=ccrs.PlateCarree())
+            ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
             ax_cart.set_yticklabels([])
             ax_cart.set_xticklabels([])
-            generate_map(CCD, fig, ax_cart, satlat, satlon, TPlat, TPlon,labels=False)
 
-        save_figure(outpath, CCD, format,date_name=True)
+            generate_map(CCD, fig, ax_cart, satlat,
+                         satlon, TPlat, TPlon,
+                         labels=False)
+
+        # additional information
+        frames = []
+        frames.append(plt.figtext(0.70, 0.04, f'nadirSZA: {nadir_sza:.4}',
+                    fontsize=11))
+        frames.append(plt.figtext(0.70, 0.07, f'nadirMZA: {nadir_mza:.4}',
+                    fontsize=11))
+        frames.append(plt.figtext(0.85, 0.04, f'tpSZA: {TPsza:.4}',fontsize=11))
+        frames.append(plt.figtext(0.85, 0.07, f'tpSSA: {TPssa:.4}',fontsize=11))
+
+        frames.append(plt.figtext(0.70, 0.15, f'satlat: {satlat:.4}',fontsize=11))
+        frames.append(plt.figtext(0.85, 0.15, f'satlon: {satlon:.4}',fontsize=11))
+        frames.append(plt.figtext(0.70, 0.12, f'TPlat: {TPlat:.4}',fontsize=11))
+        frames.append(plt.figtext(0.85, 0.12, f'TPlon: {TPlon:.4}',fontsize=11))
+        frames.append(plt.figtext(0.70, 0.11, ('_____________________' +
+                                    '_________________' +
+                                    '______________')))
+        frames.append(plt.figtext(0.70, 0.17, ('_____________________' +
+                                    '_________________' +
+                                    '______________')))
+        frames.append(plt.figtext(0.70, 0.28, 'MATS', fontsize=22,
+                    weight="bold"))
+        frames.append(plt.figtext(0.76, 0.28, f'{lvl}', fontsize=11,
+                    weight="bold"))
+        frames.append(plt.figtext(0.70, 0.26, f'v{str(version)}', fontsize=11))
+
+        save_figure(outpath, CCD, format, filename=str(index))
+
+        for i in range(0,len(frames)):
+            Artist.remove(frames[i])
 
     return
