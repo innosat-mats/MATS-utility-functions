@@ -151,8 +151,26 @@ def make_ths(CCD):
         ths[i,:]=coordinates.col_heights(CCD,col,40,spline=True)(ypixels)
     return xpixels,ypixels,ths.T
 
+def update_plot_cbar(CCD, ax, fig, cbar,
+                     outdir, nstd, cmap, custom_cbar,
+                     ranges, format,
+                     save=False, fontsize=10):
+    ax.clear()
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    fig, ax, img = plot_image(CCD, ax, fig, outdir,
+                              nstd, cmap, custom_cbar,
+                              ranges, format,
+                              save, fontsize)
+    cbar.update_normal(img)
+    cbar.ax.xaxis.set_ticks_position('top')
+    cbar.ax.tick_params(color='w')
+    cbar.ax.tick_params(labelcolor='w')
 
-def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon, labels=True):
+    return
+
+def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon,
+                 mark_size=10, legend_fsize=7, labels=True,):
     """Generates a map
 
     Parameters
@@ -195,11 +213,11 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon, labels=True):
     ax.coastlines()
 
     # plot sat position and tangent point
-    ax.scatter(satlon, satlat, s=10,
+    ax.scatter(satlon, satlat, s=mark_size,
                color='red', label='satellite pos.')
-    ax.scatter(TPlon, TPlat, s=10,
+    ax.scatter(TPlon, TPlat, s=mark_size,
                color='green', label='TP pos.')
-    ax.legend(ncol=2, fontsize=7, loc='lower right')
+    ax.legend(ncol=2, fontsize=legend_fsize, loc='lower right')
 
     return fig, ax
 
@@ -501,10 +519,21 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
     fig.patch.set_facecolor('lightgrey')
     ax=ax.ravel()
 
-    for i in range(0,len(ax)):
+    #dummy data for generation of cbar
+    Z = np.random.rand(999, 999)
+    x = np.arange(1, 1000, 1) 
+    y = np.arange(1, 1000, 1) 
+
+    # generate cbars
+    cbaxes, cbars = [], []
+    for i in range(0,len(ax)-2):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
-    
+        img = ax[i].pcolormesh(x,y,Z)
+        cbaxes.append(inset_axes(ax[i], width="40%", height="3%", loc=8))
+        cbars.append(plt.colorbar(img, cax = cbaxes[i], orientation='horizontal'))
+        cbars[i].set_ticks([])
+
     # idle titles
     ax[0].set_title('IR1 (idle..)')
     ax[1].set_title('IR3 (idle..)')
@@ -514,6 +543,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
     ax[5].set_title('UV2 (idle..)')
     ax[6].set_title('NADIR (idle..)')
 
+    # remove and replace some ax
     ax[8].remove()
     ax[7].remove()
     ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
@@ -533,40 +563,30 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         TPlat, TPlon,
         TPLT, TPsza, TPssa) = calculate_geo(CCD)
 
-        # animation stuff
+        # animation stuff (update plot and cbar) 
         if CCD['CCDSEL'] == 3:
-            ax[1].clear()
-            ax[1].set_xticklabels([])
-            ax[1].set_yticklabels([])
-            fig, ax[1], img = plot_image(CCD, ax[1], fig, outdir,
-                                         nstd, cmap, custom_cbar,
-                                         ranges, format,
-                                         save=False, fontsize=10)
-        elif CCD['CCDSEL'] == 2:
-            ax[4].clear()
-            ax[4].set_xticklabels([])
-            ax[4].set_yticklabels([])
-            fig, ax[4], img = plot_image(CCD, ax[4], fig, outdir,
-                                nstd, cmap, custom_cbar,
-                                ranges, format,
-                                save=False, fontsize=10)
+            update_plot_cbar(CCD, ax[1], fig, cbars[1],
+                             outdir, nstd, cmap, custom_cbar,
+                             ranges, format,
+                             save=False, fontsize=10)
 
+        elif CCD['CCDSEL'] == 2:
+            update_plot_cbar(CCD, ax[4], fig, cbars[4],
+                             outdir, nstd, cmap, custom_cbar,
+                             ranges, format,
+                             save=False, fontsize=10)
         elif CCD['CCDSEL'] == 5:
-            ax[2].clear()
-            ax[2].set_xticklabels([])
-            ax[2].set_yticklabels([])
-            fig, ax[2], img = plot_image(CCD, ax[2], fig, outdir,
-                                nstd, cmap, custom_cbar,
-                                ranges, format,
-                                save=False, fontsize=10)
+            update_plot_cbar(CCD, ax[2], fig, cbars[2],
+                             outdir, nstd, cmap, custom_cbar,
+                             ranges, format,
+                             save=False, fontsize=10)
 
         else:
-            ax[CCD['CCDSEL'] - 1].clear()
-            ax[CCD['CCDSEL'] - 1].set_xticklabels([])
-            ax[CCD['CCDSEL'] - 1].set_yticklabels([])
-            fig, ax[CCD['CCDSEL'] - 1], img= plot_image(CCD, ax[CCD['CCDSEL'] - 1], fig, outdir,
-                                                        nstd, cmap, custom_cbar,
-                                                        ranges, format, save=False, fontsize=10)
+            update_plot_cbar(CCD, ax[CCD['CCDSEL'] - 1],
+                             fig, cbars[CCD['CCDSEL'] - 1],
+                             outdir, nstd, cmap, custom_cbar,
+                             ranges, format,
+                             save=False, fontsize=10)
 
         if CCD['CCDSEL'] == 1:
             ax_cart.remove()
@@ -575,15 +595,15 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
             ax_cart.set_xticklabels([])
 
             generate_map(CCD, fig, ax_cart, satlat,
-                         satlon, TPlat, TPlon,
+                         satlon, TPlat, TPlon, mark_size=12, legend_fsize=9,
                          labels=False)
 
         # additional information
         frames = []
         frames.append(plt.figtext(0.70, 0.04, f'nadirSZA: {nadir_sza:.4}',
-                    fontsize=11))
+                      fontsize=11))
         frames.append(plt.figtext(0.70, 0.07, f'nadirMZA: {nadir_mza:.4}',
-                    fontsize=11))
+                      fontsize=11))
         frames.append(plt.figtext(0.85, 0.04, f'tpSZA: {TPsza:.4}',fontsize=11))
         frames.append(plt.figtext(0.85, 0.07, f'tpSSA: {TPssa:.4}',fontsize=11))
 
