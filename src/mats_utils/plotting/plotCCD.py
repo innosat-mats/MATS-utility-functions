@@ -16,13 +16,16 @@ image_var = {'L1a': 'IMAGE', 'L1b': 'ImageCalibrated'}
 channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '4': 'IR2', '5': 'UV1', '6': 'UV2',
                '7': 'NADIR'}
-ranges_dayglow = {'IR1' : [0,30],
-                  'IR2' : [0,30],
-                  'IR3' : [0,30],
-                  'IR4' : [0,30]}
-ranges_UV = {'UV1' : [0,40],
-             'UV2' : [0,40]}
 
+# optimal ranges only for L1b so far
+ranges_dayglow = {'IR1': [0, 30], 'IR2': [0, 30],
+                  'IR3': [0, 30], 'IR4': [0, 30],
+                  'UV1': [0, 30], 'UV2': [0, 30],
+                  'NADIR': [0, 40]}
+ranges_nightglow = {'IR1': [0, 5], 'IR2': [0, 5],
+                    'IR3': [0, 5], 'IR4': [0, 5],
+                    'UV1': [0, 30], 'UV2': [0, 30],
+                    'NADIR': [0, 40]}
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
@@ -114,7 +117,7 @@ def save_figure(outpath, CCD, format, filename=None):
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
 
 
-def calculate_range(image, ranges, nstd, optimal=False):
+def calculate_range(image, ranges, nstd):
     """Calculates ranges, means and std
 
     Parameters
@@ -163,7 +166,7 @@ def make_ths(CCD):
 
 def update_plot_cbar(CCD, ax, fig, cbar,
                      outdir, nstd, cmap,
-                     ranges, format,
+                     ranges, optimal_range, format,
                      save=False, fontsize=10):
     ax.clear()
     ax.set_xticklabels([])
@@ -268,7 +271,7 @@ def generate_histogram(ax, image, ranges, nstd):
 
 
 def plot_image(CCD, ax=None, fig=None, outpath=None,
-               nstd=2, cmap='inferno',
+               nstd=2, cmap='inferno', optimal_range=False,
                ranges=None, format='png', save=True,
                fontsize=10):
     """
@@ -316,7 +319,15 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     channel = channel_var[str(CCD['CCDSEL'])]
 
     # calculate ranges
-    vmin, vmax, mean, std = calculate_range(image, ranges, nstd)
+    if optimal_range and (lvl == 'L1b'):
+        if TPsza < 90:
+            vmin = ranges_dayglow[channel][0]
+            vmax = ranges_dayglow[channel][1]
+        else:
+            vmin = ranges_nightglow[channel][0]
+            vmax = ranges_nightglow[channel][1]
+    else:
+        vmin, vmax, mean, std = calculate_range(image, ranges, nstd)
 
     # plot CCD image
     if (channel in flipped_CCDs) and (lvl == 'L1a'):
@@ -416,7 +427,7 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 
 def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
-               ranges=None, format='png'):
+               ranges=None, optimal_range=False, format='png'):
     """
        Generates plots from (several) CCD items: image, histogram and map.
        Figures will be saved in subfolders of outdir by CCDSEL.
@@ -510,7 +521,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 
 def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
-                      ranges=None, format='png', version=None):
+                      ranges=None, optimal_range=False, format='png', version=None):
 
     check_type(CCD_dataframe)
     lvl = check_level(CCD_dataframe)
@@ -567,25 +578,25 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         if CCD['CCDSEL'] == 3:
             update_plot_cbar(CCD, ax[1], fig, cbars[1],
                              outdir, nstd, cmap,
-                             ranges, format,
+                             ranges, optimal_range, format,
                              save=False, fontsize=10)
 
         elif CCD['CCDSEL'] == 2:
             update_plot_cbar(CCD, ax[4], fig, cbars[4],
                              outdir, nstd, cmap,
-                             ranges, format,
+                             ranges, optimal_range, format,
                              save=False, fontsize=10)
         elif CCD['CCDSEL'] == 5:
             update_plot_cbar(CCD, ax[2], fig, cbars[2],
                              outdir, nstd, cmap,
-                             ranges, format,
+                             ranges, optimal_range, format,
                              save=False, fontsize=10)
 
         else:
             update_plot_cbar(CCD, ax[CCD['CCDSEL'] - 1],
                              fig, cbars[CCD['CCDSEL'] - 1],
                              outdir, nstd, cmap,
-                             ranges, format,
+                             ranges, optimal_range, format,
                              save=False, fontsize=10)
 
         if CCD['CCDSEL'] == 1:
