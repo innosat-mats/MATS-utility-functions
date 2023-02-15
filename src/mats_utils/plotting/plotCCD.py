@@ -29,6 +29,7 @@ ranges_nightglow = {'IR1': [0, 5], 'IR2': [0, 5],
                     'IR3': [0, 5], 'IR4': [0, 5],
                     'UV1': range_UV1, 'UV2': range_UV2,
                     'NADIR': range_NADIR}
+rswitch_sza = 97.5 # TPsza dayglow/nightglow change
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
@@ -323,7 +324,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
 
     # calculate ranges
     if optimal_range and (lvl == 'L1b'):
-        if TPsza < 97.5:
+        if TPsza < rswitch_sza:
             vmin = ranges_dayglow[channel][0]
             vmax = ranges_dayglow[channel][1]
         else:
