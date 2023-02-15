@@ -25,11 +25,11 @@ ranges_dayglow = {'IR1': [0, 30, 4000, 15000], 'IR2': [0, 30, 6000, 21000],
                   'IR3': [0, 30, 3500, 8000], 'IR4': [0, 30, 2500, 7000],
                   'UV1': range_UV1, 'UV2': range_UV2,
                   'NADIR': range_NADIR}
-ranges_nightglow = {'IR1': [0, 5, 300, 2500], 'IR2': [0, 5,200, 2500],
-                    'IR3': [0, 5, 400, 1500], 'IR4': [0, 5, 400, 1500],
+ranges_nightglow = {'IR1': [0, 5, 300, 2000], 'IR2': [0, 5,200, 2000],
+                    'IR3': [0, 5, 400, 1300], 'IR4': [0, 5, 400, 1300],
                     'UV1': range_UV1, 'UV2': range_UV2,
                     'NADIR': range_NADIR}
-rswitch_sza = 97.5 # TPsza dayglow/nightglow change
+rswitch_sza = 96 # TPsza dayglow/nightglow change
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
