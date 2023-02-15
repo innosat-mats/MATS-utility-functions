@@ -18,15 +18,17 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '7': 'NADIR'}
 
 # optimal ranges only for L1b so far
-# note that UV and NADIR are in both dicts
+range_UV1 = [0, 30]
+range_UV2 = [0, 30]
+range_NADIR = [0, 100]
 ranges_dayglow = {'IR1': [0, 30], 'IR2': [0, 30],
                   'IR3': [0, 30], 'IR4': [0, 30],
-                  'UV1': [0, 30], 'UV2': [0, 30],
-                  'NADIR': [0, 100]}
+                  'UV1': range_UV1, 'UV2': range_UV2,
+                  'NADIR': range_NADIR}
 ranges_nightglow = {'IR1': [0, 5], 'IR2': [0, 5],
                     'IR3': [0, 5], 'IR4': [0, 5],
-                    'UV1': [0, 30], 'UV2': [0, 30],
-                    'NADIR': [0, 100]}
+                    'UV1': range_UV1, 'UV2': range_UV2,
+                    'NADIR': range_NADIR}
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
