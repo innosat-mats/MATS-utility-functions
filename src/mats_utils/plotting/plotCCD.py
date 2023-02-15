@@ -20,7 +20,7 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
 # optimal ranges only for L1b so far
 range_UV1 = [0, 30]
 range_UV2 = [0, 30]
-range_NADIR = [0, 100]
+range_NADIR = [0, 75]
 ranges_dayglow = {'IR1': [0, 30], 'IR2': [0, 30],
                   'IR3': [0, 30], 'IR4': [0, 30],
                   'UV1': range_UV1, 'UV2': range_UV2,
@@ -323,7 +323,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
 
     # calculate ranges
     if optimal_range and (lvl == 'L1b'):
-        if TPsza < 90:
+        if TPsza < 97.5:
             vmin = ranges_dayglow[channel][0]
             vmax = ranges_dayglow[channel][1]
         else:
