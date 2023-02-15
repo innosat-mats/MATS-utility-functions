@@ -17,7 +17,7 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '4': 'IR2', '5': 'UV1', '6': 'UV2',
                '7': 'NADIR'}
 
-# optimal ranges for cbar [L1a_0, L1a_1, L1b_0, L1b_1]
+# optimal ranges for cbar [L1b_0, L1b_1, L1a_0, L1a_1]
 range_UV1 = [0, 30, 400, 1100]
 range_UV2 = [0, 30, 1000, 5000]
 range_NADIR = [0, 75, 0, 75]
