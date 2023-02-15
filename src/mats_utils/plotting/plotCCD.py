@@ -16,6 +16,12 @@ image_var = {'L1a': 'IMAGE', 'L1b': 'ImageCalibrated'}
 channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '4': 'IR2', '5': 'UV1', '6': 'UV2',
                '7': 'NADIR'}
+ranges_dayglow = {'IR1' : [0,30],
+                  'IR2' : [0,30],
+                  'IR3' : [0,30],
+                  'IR4' : [0,30]}
+ranges_UV = {'UV1' : [0,40],
+             'UV2' : [0,40]}
 
 
 def check_type(CCD_dataframe):
@@ -108,7 +114,7 @@ def save_figure(outpath, CCD, format, filename=None):
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
 
 
-def calculate_range(image, ranges, nstd, custom_cbar):
+def calculate_range(image, ranges, nstd, optimal=False):
     """Calculates ranges, means and std
 
     Parameters
@@ -119,8 +125,6 @@ def calculate_range(image, ranges, nstd, custom_cbar):
         if requested min max range
     nstd : int
         number of std dev
-    custom_cbar : bool
-        if false use nstd for ranges
 
     Returns
     -------
@@ -138,7 +142,7 @@ def calculate_range(image, ranges, nstd, custom_cbar):
     std = image.std()
     mean = image.mean()
 
-    if custom_cbar:
+    if ranges is not None:
         vmin = ranges[0]
         vmax = ranges[1]
     else:
@@ -158,14 +162,14 @@ def make_ths(CCD):
     return xpixels,ypixels,ths.T
 
 def update_plot_cbar(CCD, ax, fig, cbar,
-                     outdir, nstd, cmap, custom_cbar,
+                     outdir, nstd, cmap,
                      ranges, format,
                      save=False, fontsize=10):
     ax.clear()
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     fig, ax, img = plot_image(CCD, ax, fig, outdir,
-                              nstd, cmap, custom_cbar,
+                              nstd, cmap,
                               ranges, format,
                               save, fontsize)
     cbar.update_normal(img)
@@ -228,7 +232,7 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon,
     return fig, ax
 
 
-def generate_histogram(ax, image, ranges, nstd, custom_cbar):
+def generate_histogram(ax, image, ranges, nstd):
     """Generates histogram based on image
 
     Parameters
@@ -241,8 +245,6 @@ def generate_histogram(ax, image, ranges, nstd, custom_cbar):
         ranges for plot
     nstd : _type_
         number of standard deviations
-    custom_cbar : bool
-        if custom ranges
 
     Returns
     -------
@@ -250,7 +252,7 @@ def generate_histogram(ax, image, ranges, nstd, custom_cbar):
         axis with histogram
     """
     # calculate means
-    vmin, vmax, mean, std = calculate_range(image, ranges, nstd, custom_cbar)
+    vmin, vmax, mean, std = calculate_range(image, ranges, nstd)
 
     nbins = int(1 + np.ceil(np.log2(len(image.flatten()))))
     ax.hist(image.flatten(), bins=nbins, alpha=0.6,
@@ -266,8 +268,8 @@ def generate_histogram(ax, image, ranges, nstd, custom_cbar):
 
 
 def plot_image(CCD, ax=None, fig=None, outpath=None,
-               nstd=2, cmap='inferno', custom_cbar=False,
-               ranges=[0, 1000], format='png', save=True,
+               nstd=2, cmap='inferno',
+               ranges=None, format='png', save=True,
                fontsize=10):
     """
     Function to plot single MATS image
@@ -284,10 +286,8 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
         number of standard deviations, by default 2
     cmap : str, optional
        colormap for plot, by default 'inferno'
-    custom_cbar : bool, optional
-        if custom cbar set True, by default False
     ranges : list, optional
-        limits for custom cbar, by default [0,1000]
+        limits for custom cbar, overrides nstd
     format : str, optional
         format for files, by default 'png'
 
@@ -316,7 +316,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     channel = channel_var[str(CCD['CCDSEL'])]
 
     # calculate ranges
-    vmin, vmax, mean, std = calculate_range(image, ranges, nstd, custom_cbar)
+    vmin, vmax, mean, std = calculate_range(image, ranges, nstd)
 
     # plot CCD image
     if (channel in flipped_CCDs) and (lvl == 'L1a'):
@@ -360,8 +360,8 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
         return fig, ax, img
 
 
-def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
-                ranges=[0, 1000], format='png'):
+def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
+                ranges=None, format='png'):
     """Generates plots from CCD_dataframe with basic orbit parameters included.
     Images will be sorted in folders based on CCDSEL in directory specified.
 
@@ -375,10 +375,8 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
         number of standard deviations, by default 2
     cmap : str, optional
        colormap for plot, by default 'inferno'
-    custom_cbar : bool, optional
-        if custom cbar set True, by default False
     ranges : list, optional
-        limits for custom cbar, by default [0,1000]
+        limits for custom cbar
     format : str, optional
         format for files, by default 'png'
     """
@@ -408,17 +406,17 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
 
         if dftype == pd.core.series.Series:
             plot_image(CCDs, fig=fig, ax=ax, outpath=outpath,
-                       nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
+                       nstd=nstd, cmap=cmap,
                        ranges=ranges, format=format)
         else:
             for index, CCD in CCDs.iterrows():
                 plot_image(CCD, ax, fig=fig, outpath=outpath,
-                           nstd=nstd, cmap=cmap, custom_cbar=custom_cbar,
+                           nstd=nstd, cmap=cmap,
                            ranges=ranges, format=format)
 
 
-def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
-               ranges=[0, 1000], format='png'):
+def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
+               ranges=None, format='png'):
     """
        Generates plots from (several) CCD items: image, histogram and map.
        Figures will be saved in subfolders of outdir by CCDSEL.
@@ -433,10 +431,8 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
         Number of standard deviations for cbar and histogram, by default 2
     cmap : str, optional
         Colourmap for image, by default 'inferno'
-    custom_cbar : bool, optional
-        Custom cbar, by default False
     ranges : tuple, optional
-        If custom_cbar == True, specify cbar limits, by default (0,1000)
+        Specify cbar limits, by default from nstd
     format : str
         file format for output img
     """
@@ -489,7 +485,6 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
                 # plot CCD image
                 fig, ax1, img = plot_image(CCD, ax1, fig, outpath=outdir,
                                            nstd=nstd, cmap=cmap,
-                                           custom_cbar=custom_cbar,
                                            ranges=ranges, format=format,
                                            save=False)
 
@@ -505,7 +500,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
 
                 # plot histogram
                 generate_histogram(ax2, image, ranges,
-                                   nstd, custom_cbar)
+                                   nstd)
 
                 save_figure(outpath, CCD, format)
                 fig.clear()
@@ -515,8 +510,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma', custom_cbar=False,
 
 
 def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
-                      custom_cbar=False,
-                      ranges=[0, 1000], format='png', version=None):
+                      ranges=None, format='png', version=None):
 
     check_type(CCD_dataframe)
     lvl = check_level(CCD_dataframe)
@@ -572,25 +566,25 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         # animation stuff (update plot and cbar) 
         if CCD['CCDSEL'] == 3:
             update_plot_cbar(CCD, ax[1], fig, cbars[1],
-                             outdir, nstd, cmap, custom_cbar,
+                             outdir, nstd, cmap,
                              ranges, format,
                              save=False, fontsize=10)
 
         elif CCD['CCDSEL'] == 2:
             update_plot_cbar(CCD, ax[4], fig, cbars[4],
-                             outdir, nstd, cmap, custom_cbar,
+                             outdir, nstd, cmap,
                              ranges, format,
                              save=False, fontsize=10)
         elif CCD['CCDSEL'] == 5:
             update_plot_cbar(CCD, ax[2], fig, cbars[2],
-                             outdir, nstd, cmap, custom_cbar,
+                             outdir, nstd, cmap,
                              ranges, format,
                              save=False, fontsize=10)
 
         else:
             update_plot_cbar(CCD, ax[CCD['CCDSEL'] - 1],
                              fig, cbars[CCD['CCDSEL'] - 1],
-                             outdir, nstd, cmap, custom_cbar,
+                             outdir, nstd, cmap,
                              ranges, format,
                              save=False, fontsize=10)
 
