@@ -18,14 +18,15 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '7': 'NADIR'}
 
 # optimal ranges only for L1b so far
+# note that UV and NADIR are in both dicts
 ranges_dayglow = {'IR1': [0, 30], 'IR2': [0, 30],
                   'IR3': [0, 30], 'IR4': [0, 30],
                   'UV1': [0, 30], 'UV2': [0, 30],
-                  'NADIR': [0, 40]}
+                  'NADIR': [0, 100]}
 ranges_nightglow = {'IR1': [0, 5], 'IR2': [0, 5],
                     'IR3': [0, 5], 'IR4': [0, 5],
                     'UV1': [0, 30], 'UV2': [0, 30],
-                    'NADIR': [0, 40]}
+                    'NADIR': [0, 100]}
 
 def check_type(CCD_dataframe):
     """Check format of CCD_dataframe
@@ -173,7 +174,7 @@ def update_plot_cbar(CCD, ax, fig, cbar,
     ax.set_yticklabels([])
     fig, ax, img = plot_image(CCD, ax, fig, outdir,
                               nstd, cmap,
-                              ranges, format,
+                              ranges, optimal_range, format,
                               save, fontsize)
     cbar.update_normal(img)
     cbar.ax.xaxis.set_ticks_position('top')
@@ -271,8 +272,8 @@ def generate_histogram(ax, image, ranges, nstd):
 
 
 def plot_image(CCD, ax=None, fig=None, outpath=None,
-               nstd=2, cmap='inferno', optimal_range=False,
-               ranges=None, format='png', save=True,
+               nstd=2, cmap='inferno', ranges=None,
+               optimal_range=False, format='png', save=True,
                fontsize=10):
     """
     Function to plot single MATS image
@@ -372,7 +373,7 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
 
 
 def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
-                ranges=None, format='png'):
+                ranges=None, optimal_range=False, format='png'):
     """Generates plots from CCD_dataframe with basic orbit parameters included.
     Images will be sorted in folders based on CCDSEL in directory specified.
 
@@ -418,12 +419,14 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         if dftype == pd.core.series.Series:
             plot_image(CCDs, fig=fig, ax=ax, outpath=outpath,
                        nstd=nstd, cmap=cmap,
-                       ranges=ranges, format=format)
+                       ranges=ranges, optimal_range=optimal_range,
+                       format=format)
         else:
             for index, CCD in CCDs.iterrows():
                 plot_image(CCD, ax, fig=fig, outpath=outpath,
                            nstd=nstd, cmap=cmap,
-                           ranges=ranges, format=format)
+                           ranges=ranges, optimal_range=optimal_range,
+                           format=format)
 
 
 def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
@@ -496,8 +499,9 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
                 # plot CCD image
                 fig, ax1, img = plot_image(CCD, ax1, fig, outpath=outdir,
                                            nstd=nstd, cmap=cmap,
-                                           ranges=ranges, format=format,
-                                           save=False)
+                                           ranges=ranges,
+                                           optimal_range=optimal_range,
+                                           format=format, save=False)
 
                 fig.colorbar(img, ax=ax1)
 
