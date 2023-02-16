@@ -31,3 +31,11 @@ wait $pid
 
 # delete images in outdir/ALL
 rm -r ${outdir}"/ALL/"
+
+# upload video
+python upload.py --file=${outdir}${dates}".mp4"
+                 --title=${dates}
+                 --description="Lorem"
+                 --keywords="MATS"
+                 --category="22"
+                 --privacyStatus="private"
