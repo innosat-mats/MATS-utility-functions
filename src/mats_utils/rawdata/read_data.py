@@ -21,7 +21,7 @@ def read_MATS_data(start_date,end_date,version='0.4',level='1a'):
 
     ccd_data = read_ccd_data_in_interval(start_date, end_date, f"ops-payload-level{level}-v{version}", s3)
 
-    if level is '1a':
+    if level == '1a':
         add_ccd_item_attributes(ccd_data)
         remove_faulty_rows(ccd_data)
 
