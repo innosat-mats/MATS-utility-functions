@@ -8,16 +8,17 @@ from mats_utils.plotting.plotCCD import all_channels_plot
 def generate_day_interval():
 
     today = date.today()
-    yesterday = today - timedelta(days=4)
+    yesterday = today - timedelta(days=1)
+    daybefore = today - timedelta(days=2)
 
-    start_time = DT.datetime(yesterday.year,
-                             yesterday.month,
-                             yesterday.day,
+    start_time = DT.datetime(daybefore.year,
+                             daybefore.month,
+                             daybefore.day,
                              0, 0, 0)
 
-    stop_time = DT.datetime(today.year,
-                            today.month,
-                            today.day,
+    stop_time = DT.datetime(yesterday.year,
+                            yesterday.month,
+                            yesterday.day,
                             0, 0, 0)
     return start_time, stop_time
 
