@@ -4,8 +4,8 @@
 MATS_dir='/home/waves/projects/MATS/'
 
 # options 
-level=1a
-version=0.4
+level="1a"
+version="0.4"
 
 # output
 dates=$(date +'%Y_%m_%d')
@@ -20,7 +20,7 @@ echo 'Output to be saved in: '${outdir}
 pid=$!
 
 # wait while process runs
-#wait $pid
+wait $pid
 
 # generate animation
 # { ffmpeg -stream_loop 0 -r 25 -i ${outdir}"/ALL/%d.png" -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" ${outdir}anim.mp4 }

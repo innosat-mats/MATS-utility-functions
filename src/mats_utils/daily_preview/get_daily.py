@@ -10,7 +10,7 @@ parser.add_argument('--outdir', type=str,
                     help='output directory')
 parser.add_argument('--level', type=str,
                     help='choose between 1a or 1b')
-parser.add_argument('--version', type=float,
+parser.add_argument('--version', type=str,
                     help='specifies version of data')
 
 args = parser.parse_args()
