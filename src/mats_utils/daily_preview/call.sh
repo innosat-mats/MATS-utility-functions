@@ -30,4 +30,4 @@ pid=$!
 wait $pid
 
 # delete images in outdir/ALL
-rm -r ${outdir}"/ALL/
+rm -r ${outdir}"/ALL/"
