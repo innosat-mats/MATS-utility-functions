@@ -15,10 +15,10 @@ def generate_day_interval():
                              yesterday.day,
                              0, 0, 0)
 
-    stop_time = DT.datetime(yesterday.year,
-                            yesterday.month,
-                            yesterday.day,
-                            0, 2, 0)
+    stop_time = DT.datetime(today.year,
+                            today.month,
+                            today.day,
+                            0, 0, 0)
     return start_time, stop_time
 
 
