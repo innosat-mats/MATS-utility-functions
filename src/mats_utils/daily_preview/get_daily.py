@@ -1,5 +1,6 @@
 from mats_utils.rawdata.read_data import read_MATS_data
 import datetime as DT
+import pandas as pd
 import argparse
 from datetime import date,timedelta
 from mats_utils.plotting.plotCCD import all_channels_plot
@@ -14,24 +15,24 @@ parser.add_argument('--version', type=float,
 
 args = parser.parse_args()
 
-level = args.outdir
+level = args.level
 version = args.version
-outdir = '/home/waves/projects/MATS/scripts/test_get_l1b/plots/'
+outdir = args.outdir
 
 def generate_day_interval():
 
     today = date.today()
-    yesterday = today - timedelta(days=1)
+    yesterday = today - timedelta(days=4)
 
     start_time = DT.datetime(yesterday.year,
                              yesterday.month,
                              yesterday.day,
                              0, 0, 0)
 
-    stop_time = DT.datetime(today.year,
-                            today.month,
-                            today.day,
-                            0, 0, 0)
+    stop_time = DT.datetime(yesterday.year,
+                            yesterday.month,
+                            yesterday.day,
+                            0, 2, 0)
     
     return start_time, stop_time
 
