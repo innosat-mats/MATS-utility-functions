@@ -84,18 +84,21 @@ def calculate_geo(CCD):
 
     Returns
     -------
-    _type_
-        positions
+    geo_param : list
+        satlat, satlon, nadir_sza,
+        TPlat, TPlon, TPsza, TPssa, TPlt
     """
 
     satlat, satlon, satheight = coordinates.satpos(CCD)
     TPlat,TPlon,TPheight = coordinates.TPpos(CCD)
     nadir_sza, TPsza, TPssa, TPlt = coordinates.angles(CCD)
 
-    return (satlat, satlon,
-            nadir_sza,
-            TPlat, TPlon,
-            TPsza, TPssa,TPlt)
+    geo_param = (satlat, satlon,
+                 nadir_sza,
+                 TPlat, TPlon,
+                 TPsza, TPssa,TPlt)
+
+    return geo_param
 
 def save_figure(outpath, CCD, format, filename=None):
     """Saves figure to outpath
@@ -103,11 +106,13 @@ def save_figure(outpath, CCD, format, filename=None):
     Parameters
     ----------
     outpath : str
-        save path
+        output path
     CCD : CCDitem
         measurement
     format : str
         format of saved figure
+    filename : str
+        output filename
     """
 
     # filename
@@ -129,7 +134,7 @@ def calculate_range(image, ranges, nstd):
     image : array
         image to compute from
     ranges : array
-        if requested min max range
+        if supplied, min max range
     nstd : int
         number of std dev
 
@@ -159,6 +164,7 @@ def calculate_range(image, ranges, nstd):
     return vmin, vmax, mean, std
 
 def make_ths(CCD):
+    # code borrowed from Donal to produce ths
     xpixels = np.linspace(0, CCD['NCOL'], 5)
     ypixels = np.linspace(0, CCD['NROW'], 10)
 
@@ -172,6 +178,36 @@ def update_plot_cbar(CCD, ax, fig, cbar,
                      outdir, nstd, cmap,
                      ranges, optimal_range, format,
                      save=False, fontsize=10):
+    """Updates and plots colorbar. 
+    Used in all_orbit_plots to enable animations.
+
+    Parameters
+    ----------
+    CCD : CCDitem
+        CCD to plot
+    ax : axes
+        ax to plot on 
+    fig : fig
+        figure
+    cbar : cbar
+        colorbar to update
+    outdir : str
+        output directory
+    nstd : int
+        number of std for plot
+    cmap : str
+        colormap
+    ranges : array, (None)
+        ranges for plot, if None ignore
+    optimal_range : bool
+        if true use optimal ranges for cbar
+    format : str
+        output file format
+    save : bool, optional
+        _description_, by default False
+    fontsize : int, optional
+        _description_, by default 10
+    """
     ax.clear()
     ax.set_xticklabels([])
     ax.set_yticklabels([])
@@ -206,6 +242,12 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon,
         tangent point lat
     TPlon : float
         tangent point lon
+    mark_size : int
+        size of markers on map
+    legend_fsize : int
+        fontsize on legend
+    labels : bool
+        xy labels or not
 
     Returns
     -------
@@ -295,8 +337,14 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
        colormap for plot, by default 'inferno'
     ranges : list, optional
         limits for custom cbar, overrides nstd
+    optimal_range : bool
+        if 'optimal' ranges for cbar should be used
     format : str, optional
         format for files, by default 'png'
+    save : bool
+        if image to be included in another fig set to False
+    fontsize : int
+        determines font size 
 
     """
 
@@ -401,6 +449,8 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
        colormap for plot, by default 'inferno'
     ranges : list, optional
         limits for custom cbar
+    optimal_range : bool
+        if 'optimal' max min in cbar
     format : str, optional
         format for files, by default 'png'
     """
@@ -459,6 +509,8 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         Colourmap for image, by default 'inferno'
     ranges : tuple, optional
         Specify cbar limits, by default from nstd
+    optimal_range : bool
+        set optimised max min for cbar
     format : str
         file format for output img
     """
@@ -538,6 +590,32 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
                       ranges=None, optimal_range=False, format='png', version=None):
+    """Plots all channels in one plot. Generates one figure per CCD. If multiple images
+        are supplied they will be added in sequence so that animations can be generated.
+        The script makes sure animations will look good by allowing for no rescaling between 
+        images. This puts extra requirements on cbars, texts, labels etc. Images are named
+        as integer .png, starting from 0.png with the first measurement (might bebad long term). 
+    
+
+    Parameters
+    ----------
+    CCD_dataframe :CCD
+        measurement
+    outdir : str
+        output folder
+    nstd : int, optional
+        number of standard dev for colorbar, by default 2
+    cmap : str, optional
+        colormap for plot, by default 'viridis'
+    ranges : 2D array, optional
+        If none use nstd for plot otherwise specified by [x1, x2], by default None
+    optimal_range : bool, optional
+        if true use optimal ranges for plots, by default False
+    format : str, optional
+        file format of output, by default 'png'
+    version : float, optional
+        data version, willl be supplied in CCD later, by default None
+    """
 
     check_type(CCD_dataframe)
     lvl = check_level(CCD_dataframe)
