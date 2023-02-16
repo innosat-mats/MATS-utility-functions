@@ -23,8 +23,11 @@ pid=$!
 wait $pid
 
 # generate animation
-# { ffmpeg -stream_loop 0 -r 25 -i ${outdir}"/ALL/%d.png" -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" ${outdir}anim.mp4 }
+{ ffmpeg -stream_loop 0 -r 60 -i ${outdir}"/ALL/%d.png" -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" ${outdir}${dates}.mp4; } &
+pid=$!
 
 # wait while process runs
+wait $pid
 
 # delete images in outdir/ALL
+rm -r ${outdir}"/ALL/
