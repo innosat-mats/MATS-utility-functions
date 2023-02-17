@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from mats_utils.plotting.plotCCD import all_channels_plot
 
 
-def generate_day_interval():
+def generate_day_interval(snippet=False):
 
     today = date.today()
     yesterday = today - timedelta(days=1)
@@ -16,10 +16,13 @@ def generate_day_interval():
                              daybefore.day,
                              0, 0, 0)
 
-    stop_time = DT.datetime(yesterday.year,
-                            yesterday.month,
-                            yesterday.day,
-                            0, 0, 0)
+    if snippet:
+        stop_time = start_time + timedelta(minutes=2)
+    else:
+        stop_time = DT.datetime(yesterday.year,
+                                yesterday.month,
+                                yesterday.day,
+                                0, 0, 0)
     return start_time, stop_time
 
 
@@ -31,6 +34,8 @@ parser.add_argument('--level', type=str, default='1a',
                     help='choose between 1a or 1b')
 parser.add_argument('--version', type=str, default='0.4',
                     help='specifies version of data')
+parser.add_argument('--snippet', type=bool, default=False,
+                    help='for debugging')
 
 
 args = parser.parse_args()
@@ -38,8 +43,9 @@ args = parser.parse_args()
 level = args.level
 version = args.version
 outdir = args.outdir
+snippet = args.snippet
 
-start_time, stop_time = generate_day_interval()
+start_time, stop_time = generate_day_interval(snippet=snippet)
 
 CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
 
