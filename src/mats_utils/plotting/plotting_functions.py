@@ -71,11 +71,12 @@ def collapsandplot(imagecube,collapsdim, ax, signallabel='', title=''):
 
     return
 
-def create_imagecube(CCDitems, image_specification='IMAGE'):
+
+def create_imagecube(dfCCDitems, image_specification='IMAGE'):
     """    
     Parameters
     ----------
-    CCDitems : LIST of CCDitems
+    dfCCDitems : dataframe containing of CCDitems as rows
     image_specification : STR IMAGE or image_calibrated supported 
 
     Returns
@@ -86,7 +87,7 @@ def create_imagecube(CCDitems, image_specification='IMAGE'):
     if image_specification!='IMAGE' and image_specification!='image_calibrated':
         Warning('image_specification must be "IMAGE" or "image-calibrated"')
     imagelist=[]
-    for CCDitem in CCDitems:
+    for index, CCDitem in dfCCDitems.iterrows():
         image=CCDitem[image_specification]
         imagelist.append(image)
 
@@ -94,7 +95,6 @@ def create_imagecube(CCDitems, image_specification='IMAGE'):
 
     return imagecube
 
-##########
     
 def select_CCDitems(CCDitems, key, value): 
     """
