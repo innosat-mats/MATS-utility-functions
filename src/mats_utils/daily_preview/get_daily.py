@@ -35,7 +35,7 @@ parser.add_argument('--level', type=str, default='1a',
 parser.add_argument('--version', type=str, default='0.4',
                     help='specifies version of data')
 parser.add_argument('--snippet', type=bool, default=False,
-                    help='for debugging')
+                    help='If supplied; short interval for debugging')
 
 
 args = parser.parse_args()
