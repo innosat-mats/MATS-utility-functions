@@ -18,11 +18,11 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '7': 'NADIR'}
 
 # optimal ranges for cbar [L1b_0, L1b_1, L1a_0, L1a_1]
-range_UV1 = [0, 30, 400, 1100]
-range_UV2 = [0, 30, 1000, 5000]
+range_UV1 = [0, 30, 500, 2000]
+range_UV2 = [0, 30, 1500, 8000]
 range_NADIR = [0, 75, 8000, 40000]
-ranges_dayglow = {'IR1': [0, 30, 4000, 15000], 'IR2': [0, 30, 6000, 21000],
-                  'IR3': [0, 30, 3500, 8000], 'IR4': [0, 30, 2500, 7000],
+ranges_dayglow = {'IR1': [0, 30, 1500, 14000], 'IR2': [0, 30, 2000, 20000],
+                  'IR3': [0, 30, 1500, 10000], 'IR4': [0, 30, 1500, 10000],
                   'UV1': range_UV1, 'UV2': range_UV2,
                   'NADIR': range_NADIR}
 ranges_nightglow = {'IR1': [0, 5, 300, 2000], 'IR2': [0, 5,200, 2000],
@@ -394,12 +394,12 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     if (channel in flipped_CCDs) and (lvl == 'L1a'):
         nrows = np.arange(0, CCD['NROW'])
         ncols = np.arange(0, CCD['NCOL']+1)
-        img = ax.pcolormesh(np.flip(ncols), nrows,
+        img = ax.pcolorfast(np.flip(ncols), nrows,
                             image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
     else:
-        img = ax.pcolormesh(image, cmap=cmap,
+        img = ax.pcolorfast(image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
     # add heights
@@ -625,16 +625,16 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
     ax=ax.ravel()
 
     #dummy data for generation of cbar
-    Z = np.random.rand(999, 999)
-    x = np.arange(1, 1000, 1) 
-    y = np.arange(1, 1000, 1) 
+    Z = np.random.rand(199, 199)
+    x = np.arange(1, 200, 1) 
+    y = np.arange(1, 200, 1) 
 
     # generate cbars
     cbaxes, cbars = [], []
     for i in range(0,len(ax)-2):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
-        img = ax[i].pcolormesh(x,y,Z,cmap=cmap)
+        img = ax[i].pcolorfast(x,y,Z,cmap=cmap)
         cbaxes.append(inset_axes(ax[i], width="40%", height="6%", loc=8))
         cbars.append(plt.colorbar(img, cax = cbaxes[i], orientation='horizontal'))
         cbars[i].set_ticks([])

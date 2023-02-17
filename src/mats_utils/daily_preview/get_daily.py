@@ -3,7 +3,10 @@ import datetime as DT
 import argparse
 from datetime import date, timedelta
 from mats_utils.plotting.plotCCD import all_channels_plot
-
+import cProfile
+import time
+import io
+import pstats
 
 def generate_day_interval(snippet=False):
 
@@ -34,9 +37,8 @@ parser.add_argument('--level', type=str, default='1a',
                     help='choose between 1a or 1b')
 parser.add_argument('--version', type=str, default='0.4',
                     help='specifies version of data')
-parser.add_argument('--snippet', type=bool, default=False,
+parser.add_argument('--snippet', action="store_true", default=False,
                     help='If supplied; short interval for debugging')
-
 
 args = parser.parse_args()
 
@@ -47,6 +49,8 @@ snippet = args.snippet
 
 start_time, stop_time = generate_day_interval(snippet=snippet)
 
+# get measurements
 CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
 
+# generate figures
 all_channels_plot(CCDitems, outdir=outdir, optimal_range=True)
