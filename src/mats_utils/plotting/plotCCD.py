@@ -661,6 +661,10 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         if not os.path.exists(outpath):
             os.makedirs(outpath)
 
+    # image count (to reduce idle images; especially when looping this function)
+    img_count = 0
+    draw_map = True # for error with cartopy
+
     for index, CCD in CCD_dataframe.iterrows():
 
         (satlat, satlon,
@@ -693,7 +697,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
                              ranges, optimal_range, format,
                              save=False, fontsize=10)
 
-        if CCD['CCDSEL'] == 1:
+        if (CCD['CCDSEL'] == 1) & draw_map:
             ax_cart.remove()
             ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
             ax_cart.set_yticklabels([])
@@ -732,7 +736,15 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
             plt.figtext(0.70, 0.19, 'units: counts', weight='bold',fontsize= 11)
         if lvl == 'L1b':
             plt.figtext(0.70, 0.19, 'units: photons/nm', weight='bold',fontsize= 11)
-        save_figure(outpath, CCD, format, filename=str(index))
+        
+        img_count = img_count + 1
+
+        if (img_count <= 5) and (CCD['CCDSEL'] == 1):
+            draw_map = False # cartopy error when looping
+
+        if img_count > 5:
+            save_figure(outpath, CCD, format, filename=str(index))
+            draw_map = True # cartopy error when looping
 
         for i in range(0,len(frames)):
             Artist.remove(frames[i])

@@ -3,10 +3,7 @@ import datetime as DT
 import argparse
 from datetime import date, timedelta
 from mats_utils.plotting.plotCCD import all_channels_plot
-import cProfile
-import time
-import io
-import pstats
+import numpy as np
 
 def generate_day_interval(snippet=False):
 
@@ -53,4 +50,23 @@ start_time, stop_time = generate_day_interval(snippet=snippet)
 CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
 
 # generate figures
-all_channels_plot(CCDitems, outdir=outdir, optimal_range=True)
+# note: issue when plotting several thousands of figures,
+# plotting slows down. for now: split up by calling different output folders:
+
+
+sets = int(np.floor(len(CCDitems)/500))
+
+if int(len(CCDitems)) > 500:
+    for part in range(0, sets):
+        
+        if part == 0:
+            start_point = 0
+        else: 
+            start_point = part*500-1
+
+        if (part+1)*500 < int(len(CCDitems)):
+            all_channels_plot(CCDitems[start_point:(part+1)*500-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
+        else:
+            all_channels_plot(CCDitems[start_point:int(len(CCDitems))-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
+else:
+    all_channels_plot(CCDitems, outdir=outdir+'part0/', optimal_range=True)
