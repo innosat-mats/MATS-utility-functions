@@ -18,11 +18,11 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '7': 'NADIR'}
 
 # optimal ranges for cbar [L1b_0, L1b_1, L1a_0, L1a_1]
-range_UV1 = [0, 30, 400, 1100]
-range_UV2 = [0, 30, 1000, 5000]
+range_UV1 = [0, 30, 500, 2000]
+range_UV2 = [0, 30, 1500, 8000]
 range_NADIR = [0, 75, 8000, 40000]
-ranges_dayglow = {'IR1': [0, 30, 4000, 15000], 'IR2': [0, 30, 6000, 21000],
-                  'IR3': [0, 30, 3500, 8000], 'IR4': [0, 30, 2500, 7000],
+ranges_dayglow = {'IR1': [0, 30, 1500, 14000], 'IR2': [0, 30, 2000, 20000],
+                  'IR3': [0, 30, 1500, 10000], 'IR4': [0, 30, 1500, 10000],
                   'UV1': range_UV1, 'UV2': range_UV2,
                   'NADIR': range_NADIR}
 ranges_nightglow = {'IR1': [0, 5, 300, 2000], 'IR2': [0, 5,200, 2000],
@@ -124,6 +124,7 @@ def save_figure(outpath, CCD, format, filename=None):
 
     plt.tight_layout()
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
+    #plt.close()
 
 
 def calculate_range(image, ranges, nstd):
@@ -259,10 +260,10 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon,
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
                       linewidth=0.9, color='black',
                       alpha=0.5, linestyle='-')
-    gl.xlabels_top = labels
-    gl.xlabels_bottom = labels
-    gl.ylabels_left = labels
-    gl.ylabels_right = False
+    gl.top_labels = labels
+    gl.bottom_labels = labels
+    gl.left_labels = labels
+    gl.right_labels = False
     gl.xlines = True
     ax.set_xlabel('longitude [deg]')
     ax.set_ylabel('latitude [deg]')
@@ -394,12 +395,12 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     if (channel in flipped_CCDs) and (lvl == 'L1a'):
         nrows = np.arange(0, CCD['NROW'])
         ncols = np.arange(0, CCD['NCOL']+1)
-        img = ax.pcolormesh(np.flip(ncols), nrows,
+        img = ax.pcolorfast(np.flip(ncols), nrows,
                             image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
     else:
-        img = ax.pcolormesh(image, cmap=cmap,
+        img = ax.pcolorfast(image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
     # add heights
@@ -625,16 +626,16 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
     ax=ax.ravel()
 
     #dummy data for generation of cbar
-    Z = np.random.rand(999, 999)
-    x = np.arange(1, 1000, 1) 
-    y = np.arange(1, 1000, 1) 
+    Z = np.random.rand(199, 199)
+    x = np.arange(1, 200, 1) 
+    y = np.arange(1, 200, 1) 
 
     # generate cbars
     cbaxes, cbars = [], []
     for i in range(0,len(ax)-2):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
-        img = ax[i].pcolormesh(x,y,Z,cmap=cmap)
+        img = ax[i].pcolorfast(x,y,Z,cmap=cmap)
         cbaxes.append(inset_axes(ax[i], width="40%", height="6%", loc=8))
         cbars.append(plt.colorbar(img, cax = cbaxes[i], orientation='horizontal'))
         cbars[i].set_ticks([])
@@ -660,6 +661,10 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
 
         if not os.path.exists(outpath):
             os.makedirs(outpath)
+
+    # image count (to reduce idle images; especially when looping this function)
+    img_count = 0
+    draw_map = True # for error with cartopy
 
     for index, CCD in CCD_dataframe.iterrows():
 
@@ -693,7 +698,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
                              ranges, optimal_range, format,
                              save=False, fontsize=10)
 
-        if CCD['CCDSEL'] == 1:
+        if (CCD['CCDSEL'] == 1) and draw_map:
             ax_cart.remove()
             ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
             ax_cart.set_yticklabels([])
@@ -732,9 +737,19 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
             plt.figtext(0.70, 0.19, 'units: counts', weight='bold',fontsize= 11)
         if lvl == 'L1b':
             plt.figtext(0.70, 0.19, 'units: photons/nm', weight='bold',fontsize= 11)
-        save_figure(outpath, CCD, format, filename=str(index))
+        
+        img_count = img_count + 1
+
+        if (img_count <= 5) and (CCD['CCDSEL'] == 1):
+            draw_map = False # cartopy error when looping
+
+        if img_count > 5:
+            save_figure(outpath, CCD, format, filename=str(index))
+            draw_map = True # cartopy error when looping
 
         for i in range(0,len(frames)):
             Artist.remove(frames[i])
+
+    plt.close()
 
     return
