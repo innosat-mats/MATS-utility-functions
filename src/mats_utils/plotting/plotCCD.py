@@ -124,7 +124,7 @@ def save_figure(outpath, CCD, format, filename=None):
 
     plt.tight_layout()
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
-    plt.close()
+    #plt.close()
 
 
 def calculate_range(image, ranges, nstd):
@@ -260,10 +260,10 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon,
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
                       linewidth=0.9, color='black',
                       alpha=0.5, linestyle='-')
-    gl.xlabels_top = labels
-    gl.xlabels_bottom = labels
-    gl.ylabels_left = labels
-    gl.ylabels_right = False
+    gl.top_labels = labels
+    gl.bottom_labels = labels
+    gl.left_labels = labels
+    gl.right_labels = False
     gl.xlines = True
     ax.set_xlabel('longitude [deg]')
     ax.set_ylabel('latitude [deg]')
@@ -698,7 +698,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
                              ranges, optimal_range, format,
                              save=False, fontsize=10)
 
-        if (CCD['CCDSEL'] == 1) & draw_map:
+        if (CCD['CCDSEL'] == 1) and draw_map:
             ax_cart.remove()
             ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
             ax_cart.set_yticklabels([])
@@ -749,5 +749,7 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
 
         for i in range(0,len(frames)):
             Artist.remove(frames[i])
+
+    plt.close()
 
     return
