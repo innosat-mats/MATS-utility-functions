@@ -124,6 +124,7 @@ def save_figure(outpath, CCD, format, filename=None):
 
     plt.tight_layout()
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
+    plt.close()
 
 
 def calculate_range(image, ranges, nstd):
