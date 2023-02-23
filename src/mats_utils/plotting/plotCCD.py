@@ -18,15 +18,15 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '7': 'NADIR'}
 
 # optimal ranges for cbar [L1b_0, L1b_1, L1a_0, L1a_1]
-range_UV1 = [0, 30, 500, 2000]
-range_UV2 = [0, 30, 1500, 8000]
+range_UV1 = [0, 450, 500, 2000]
+range_UV2 = [0, 450, 1500, 8000]
 range_NADIR = [0, 75, 8000, 40000]
-ranges_dayglow = {'IR1': [0, 30, 1500, 14000], 'IR2': [0, 30, 2000, 20000],
-                  'IR3': [0, 30, 1500, 10000], 'IR4': [0, 30, 1500, 10000],
+ranges_dayglow = {'IR1': [0, 500, 1500, 14000], 'IR2': [0, 500, 2000, 20000],
+                  'IR3': [0, 100, 1500, 10000], 'IR4': [0, 100, 1500, 10000],
                   'UV1': range_UV1, 'UV2': range_UV2,
                   'NADIR': range_NADIR}
-ranges_nightglow = {'IR1': [0, 5, 300, 2000], 'IR2': [0, 5,200, 2000],
-                    'IR3': [0, 5, 400, 1300], 'IR4': [0, 5, 400, 1300],
+ranges_nightglow = {'IR1': [0, 75, 300, 2000], 'IR2': [0, 75, 200, 2000],
+                    'IR3': [0, 25, 400, 1300], 'IR4': [0, 25, 400, 1300],
                     'UV1': range_UV1, 'UV2': range_UV2,
                     'NADIR': range_NADIR}
 rswitch_sza = 96 # TPsza dayglow/nightglow change
@@ -173,7 +173,7 @@ def make_ths(CCD):
     #print (ths.shape)
     for i,col in enumerate(xpixels): 
         ths[i,:]=coordinates.col_heights(CCD,col,40,spline=True)(ypixels)
-    return xpixels,ypixels,ths.T
+    return 0.5+xpixels,ypixels,ths.T
 
 def update_plot_cbar(CCD, ax, fig, cbar,
                      outdir, nstd, cmap,

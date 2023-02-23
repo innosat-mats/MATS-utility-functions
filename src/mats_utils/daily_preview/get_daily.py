@@ -4,12 +4,13 @@ import argparse
 from datetime import date, timedelta
 from mats_utils.plotting.plotCCD import all_channels_plot
 import numpy as np
+import sys
 
 def generate_day_interval(snippet=False):
 
     today = date.today()
     yesterday = today - timedelta(days=1)
-    daybefore = today - timedelta(days=2)
+    daybefore = today - timedelta(days=3)
 
     start_time = DT.datetime(daybefore.year,
                              daybefore.month,
@@ -61,12 +62,19 @@ if int(len(CCDitems)) > 500:
         
         if part == 0:
             start_point = 0
-        else: 
-            start_point = part*500-1
-
-        if (part+1)*500 < int(len(CCDitems)):
-            all_channels_plot(CCDitems[start_point:(part+1)*500-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
         else:
-            all_channels_plot(CCDitems[start_point:int(len(CCDitems))-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
+            start_point = part*500-1
+        try:
+            if (part+1)*500 < int(len(CCDitems)):
+                all_channels_plot(CCDitems[start_point:(part+1)*500-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
+            else:
+                all_channels_plot(CCDitems[start_point:int(len(CCDitems))-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
+        except KeyboardInterrupt:
+            sys.exit()
 else:
-    all_channels_plot(CCDitems, outdir=outdir+'part0/', optimal_range=True)
+    try:
+        all_channels_plot(CCDitems, outdir=outdir+'part0/', optimal_range=True)
+    except KeyboardInterrupt:
+        sys.exit()
+
+
