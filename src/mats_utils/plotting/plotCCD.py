@@ -173,7 +173,7 @@ def make_ths(CCD):
     #print (ths.shape)
     for i,col in enumerate(xpixels): 
         ths[i,:]=coordinates.col_heights(CCD,col,40,spline=True)(ypixels)
-    return xpixels,ypixels,ths.T
+    return 0.5+xpixels,ypixels,ths.T
 
 def update_plot_cbar(CCD, ax, fig, cbar,
                      outdir, nstd, cmap,
