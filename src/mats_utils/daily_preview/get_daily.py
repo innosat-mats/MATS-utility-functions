@@ -30,7 +30,7 @@ def generate_day_interval(snippet=False):
 
 def parallel_plotting(part):
 
-    files_per_part = 500
+    files_per_part = 250
 
     if int(len(CCDitems)) > files_per_part:
             
@@ -79,10 +79,10 @@ CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
 # note: issue when plotting several thousands of figures,
 # plotting slows down. for now: split up by calling different output folders:
 
-files_per_part = 500
+files_per_part = 250
 sets = int(np.floor(len(CCDitems)/files_per_part))
 
 parts = list(np.arange(0, sets))
 
-pool = multiprocessing.Pool(6)
+pool = multiprocessing.Pool(8)
 pool.map(parallel_plotting, parts)
