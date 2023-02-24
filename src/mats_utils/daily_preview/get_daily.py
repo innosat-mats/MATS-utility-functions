@@ -82,7 +82,7 @@ CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
 files_per_part = 500
 sets = int(np.floor(len(CCDitems)/files_per_part))
 
-parts = list(np.arange(0, 3))
+parts = list(np.arange(0, sets))
 
 pool = multiprocessing.Pool(6)
 pool.map(parallel_plotting, parts)
