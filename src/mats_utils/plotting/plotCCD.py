@@ -590,7 +590,8 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 
 def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
-                      ranges=None, optimal_range=False, format='png', version=None):
+                      ranges=None, optimal_range=False, format='png', version=None,
+                      num_name=False):
     """Plots all channels in one plot. Generates one figure per CCD. If multiple images
         are supplied they will be added in sequence so that animations can be generated.
         The script makes sure animations will look good by allowing for no rescaling between 
@@ -616,7 +617,11 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         file format of output, by default 'png'
     version : float, optional
         data version, willl be supplied in CCD later, by default None
+    num_name : bool, optional
+        if output files should be named in numerical order
     """
+
+    plt.ioff()
 
     check_type(CCD_dataframe)
     lvl = check_level(CCD_dataframe)
@@ -626,16 +631,17 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
     ax=ax.ravel()
 
     #dummy data for generation of cbar
-    Z = np.random.rand(199, 199)
-    x = np.arange(1, 200, 1) 
-    y = np.arange(1, 200, 1) 
+    Z = np.random.rand(99, 1)
+    Z = np.append(Z,Z,axis=1)
+    x = np.arange(1, 3, 1)
+    y = np.arange(1, 100, 1) 
 
     # generate cbars
     cbaxes, cbars = [], []
     for i in range(0,len(ax)-2):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
-        img = ax[i].pcolorfast(x,y,Z,cmap=cmap)
+        img = ax[i].pcolorfast(x,y,Z,cmap=cmap, alpha=1)
         cbaxes.append(inset_axes(ax[i], width="40%", height="6%", loc=8))
         cbars.append(plt.colorbar(img, cax = cbaxes[i], orientation='horizontal'))
         cbars[i].set_ticks([])
@@ -744,7 +750,12 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
             draw_map = False # cartopy error when looping
 
         if img_count > 5:
-            save_figure(outpath, CCD, format, filename=str(index))
+
+            if not num_name:
+                save_figure(outpath, CCD, format, filename=str(index))
+            else:
+                save_figure(outpath, CCD, format, filename=str(img_count))
+
             draw_map = True # cartopy error when looping
 
         for i in range(0,len(frames)):
