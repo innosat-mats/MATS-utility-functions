@@ -11,7 +11,7 @@ def generate_day_interval(snippet=False):
 
     today = date.today()
     yesterday = today - timedelta(days=1)
-    daybefore = today - timedelta(days=3)
+    daybefore = today - timedelta(days=2)
 
     start_time = DT.datetime(daybefore.year,
                              daybefore.month,
@@ -19,7 +19,7 @@ def generate_day_interval(snippet=False):
                              0, 0, 0)
 
     if snippet:
-        stop_time = start_time + timedelta(minutes=2)
+        stop_time = start_time + timedelta(minutes=20)
     else:
         stop_time = DT.datetime(yesterday.year,
                                 yesterday.month,
