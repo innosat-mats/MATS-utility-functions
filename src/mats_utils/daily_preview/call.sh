@@ -8,8 +8,8 @@ conda activate MATS_img
 MATS_dir='/home/waves/projects/MATS/'
 
 # options 
-level="1a"
-version="0.5"
+level="1b"
+version="0.4"
 snippet="True"
 
 # output
