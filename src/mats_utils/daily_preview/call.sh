@@ -34,13 +34,17 @@ wait $pid
 count=$(find ${outdir} -maxdepth 1 -mindepth 1 -type d | wc -l)
 count=$(($count-1))
 
-for number in $(seq 0 ${count});
+for folder in ${MATS_dir}'animations/daily/'$dates/*/;
 do
-    # image offset between folders
+    # image offset 
     start=4
 
+    # for output name
+    folder_name=${folder#*$dates/}
+    file_name=${folder_name%/*}
+
     # generate parts
-    { ffmpeg -stream_loop 0 -start_number ${start} -r 60 -i ${outdir}"part${number}/ALL/%d.png" -vcodec libx264 -crf 0 ${outdir}part${number}/part${number}.mp4; } &
+    { ffmpeg -stream_loop 0 -start_number ${start} -r 60 -i ${folder}"ALL/%d.png" -vcodec libx264 -crf 0 ${outdir}${file_name}.mp4; } &
     pid=$!
     wait $pid
 
@@ -50,13 +54,13 @@ do
 
 done
 
-# generate list of parts to merge
+# generate list of parts to merge (in order)
 txt_file="${outdir}files.txt"
-rm -f $file
-echo " " | tee ${file}
-for f in ${outdir}*.mp4; do echo "file '$f'" >> $txt_file; done
+rm -f $txt_file
+dir=$(ls ${outdir}*.mp4 |sort -V)
+for f in ${dir}; do echo "file '$f'" >> $txt_file; done
 
-# merge video parts
+# merge video parts based on list
 file="${outdir}daily_${dates}.mp4"
 { ffmpeg -f concat -safe 0 -i ${txt_file} -c copy ${file}; }
 
