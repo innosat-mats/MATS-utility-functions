@@ -74,6 +74,7 @@ start_time, stop_time = generate_day_interval(snippet=snippet)
 
 # get measurements
 CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
+CCDitems = CCDitems.sort_values('EXPDate')
 
 # generate figures
 # note: issue when plotting several thousands of figures,
