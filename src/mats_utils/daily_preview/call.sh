@@ -48,9 +48,8 @@ do
     pid=$!
     wait $pid
 
-    # move video section to parent folder and delete images
-    mv ${outdir}part${number}/part${number}.mp4 ${outdir}
-    rm -r ${outdir}part${number}
+    # delete images
+    rm -r ${folder}
 
 done
 
