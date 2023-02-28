@@ -5,12 +5,13 @@ from datetime import date, timedelta
 from mats_utils.plotting.plotCCD import all_channels_plot
 import numpy as np
 import sys
+import multiprocessing
 
 def generate_day_interval(snippet=False):
 
     today = date.today()
     yesterday = today - timedelta(days=1)
-    daybefore = today - timedelta(days=3)
+    daybefore = today - timedelta(days=2)
 
     start_time = DT.datetime(daybefore.year,
                              daybefore.month,
@@ -18,13 +19,37 @@ def generate_day_interval(snippet=False):
                              0, 0, 0)
 
     if snippet:
-        stop_time = start_time + timedelta(minutes=2)
+        stop_time = start_time + timedelta(minutes=20)
     else:
         stop_time = DT.datetime(yesterday.year,
                                 yesterday.month,
                                 yesterday.day,
                                 0, 0, 0)
     return start_time, stop_time
+
+
+def parallel_plotting(part):
+
+    files_per_part = 250
+
+    if int(len(CCDitems)) > files_per_part:
+            
+        if part == 0:
+            start_point = 0
+        else:
+            start_point = part*files_per_part-1
+        try:
+            if (part+1)*files_per_part < int(len(CCDitems)):
+                all_channels_plot(CCDitems[start_point:(part+1)*files_per_part-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True, num_name=True)
+            else:
+                all_channels_plot(CCDitems[start_point:int(len(CCDitems))-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True, num_name=True)
+        except KeyboardInterrupt:
+            sys.exit()
+    else:
+        try:
+            all_channels_plot(CCDitems, outdir=outdir+'part0/', optimal_range=True, num_name=True)
+        except KeyboardInterrupt:
+            sys.exit()
 
 
 parser = argparse.ArgumentParser(description='Plots measurements from previous'
@@ -49,32 +74,16 @@ start_time, stop_time = generate_day_interval(snippet=snippet)
 
 # get measurements
 CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
+CCDitems = CCDitems.sort_values('EXPDate')
 
 # generate figures
 # note: issue when plotting several thousands of figures,
 # plotting slows down. for now: split up by calling different output folders:
 
+files_per_part = 250
+sets = int(np.floor(len(CCDitems)/files_per_part))
 
-sets = int(np.floor(len(CCDitems)/500))
+parts = list(np.arange(0, sets))
 
-if int(len(CCDitems)) > 500:
-    for part in range(0, sets):
-        
-        if part == 0:
-            start_point = 0
-        else:
-            start_point = part*500-1
-        try:
-            if (part+1)*500 < int(len(CCDitems)):
-                all_channels_plot(CCDitems[start_point:(part+1)*500-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
-            else:
-                all_channels_plot(CCDitems[start_point:int(len(CCDitems))-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True)
-        except KeyboardInterrupt:
-            sys.exit()
-else:
-    try:
-        all_channels_plot(CCDitems, outdir=outdir+'part0/', optimal_range=True)
-    except KeyboardInterrupt:
-        sys.exit()
-
-
+pool = multiprocessing.Pool(8)
+pool.map(parallel_plotting, parts)
