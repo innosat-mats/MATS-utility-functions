@@ -20,12 +20,12 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
 # optimal ranges for cbar [L1b_0, L1b_1, L1a_0, L1a_1]
 range_UV1 = [0, 450, 500, 2000]
 range_UV2 = [0, 450, 1500, 8000]
-range_NADIR = [0, 50, 8000, 40000]
-ranges_dayglow = {'IR1': [0, 550, 1500, 14000], 'IR2': [0, 400, 2000, 20000],
+range_NADIR = [0, 30, 8000, 40000]
+ranges_dayglow = {'IR1': [0, 700, 1500, 14000], 'IR2': [0, 400, 2000, 20000],
                   'IR3': [0, 90, 1500, 10000], 'IR4': [0, 90, 1500, 10000],
                   'UV1': range_UV1, 'UV2': range_UV2,
                   'NADIR': range_NADIR}
-ranges_nightglow = {'IR1': [0, 65, 300, 2000], 'IR2': [0, 50, 200, 2000],
+ranges_nightglow = {'IR1': [0, 50, 300, 2000], 'IR2': [0, 35, 200, 2000],
                     'IR3': [0, 20, 400, 1300], 'IR4': [0, 20, 400, 1300],
                     'UV1': range_UV1, 'UV2': range_UV2,
                     'NADIR': range_NADIR}
