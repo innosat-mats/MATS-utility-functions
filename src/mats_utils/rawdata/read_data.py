@@ -4,7 +4,7 @@ from datetime import timezone
 from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows
 #%matplotlib widget
 
-def read_MATS_data(start_date,end_date,version='0.4',level='1a'):
+def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
     session = boto3.session.Session(profile_name="mats")
     credentials = session.get_credentials()
 
@@ -19,7 +19,7 @@ def read_MATS_data(start_date,end_date,version='0.4',level='1a'):
     if end_date.tzinfo == None:
         end_date = end_date.replace(tzinfo=timezone.utc)
 
-    ccd_data = read_ccd_data_in_interval(start_date, end_date, f"ops-payload-level{level}-v{version}", s3)
+    ccd_data = read_ccd_data_in_interval(start_date, end_date, f"ops-payload-level{level}-v{version}", s3,filter=filter)
 
     if level == '1a':
         add_ccd_item_attributes(ccd_data)
