@@ -8,22 +8,25 @@ import sys
 import multiprocessing
 
 def generate_day_interval(snippet=False):
+    # generates start time
+    # three days ago
+    # end time: two days ago
 
     today = date.today()
-    yesterday = today - timedelta(days=1)
-    daybefore = today - timedelta(days=2)
+    start_day = today - timedelta(days=3)
+    end_day = today - timedelta(days=2)
 
-    start_time = DT.datetime(daybefore.year,
-                             daybefore.month,
-                             daybefore.day,
+    start_time = DT.datetime(start_day.year,
+                             start_day.month,
+                             start_day.day,
                              0, 0, 0)
 
     if snippet:
         stop_time = start_time + timedelta(minutes=20)
     else:
-        stop_time = DT.datetime(yesterday.year,
-                                yesterday.month,
-                                yesterday.day,
+        stop_time = DT.datetime(end_day.year,
+                                end_day.month,
+                                end_day.day,
                                 0, 0, 0)
     return start_time, stop_time
 
