@@ -11,12 +11,56 @@ from scipy.interpolate import CubicSpline
 from mats_l1_processing.pointing import pix_deg
 import numpy as np
 import datetime as DT
+from datetime import datetime, timedelta, timezone
+from pyarrow import fs
+import boto3
+import pyarrow as pa  # type: ignore
+import pyarrow.dataset as ds  # type: ignore
+from pandas import DataFrame, Timestamp  # type: ignore
 
 def funheight(s, t, pos, FOV):
     newp = pos + s * FOV
     newp = ICRF(Distance(m=newp).au, t=t, center=399)
     return wgs84.subpoint(newp).elevation.m
 
+
+def meanquaternion(start_date: datetime, deltat: timedelta):
+    """
+    Function giving the mean quaternion during a 
+    time period 
+
+   
+    Arguments:
+        Start_date and delta t in date time format
+
+    Returns:
+        mean quaternion
+        
+    """
+    session = boto3.session.Session(profile_name="mats")
+    credentials = session.get_credentials()
+
+    s3 = fs.S3FileSystem(
+        secret_key=credentials.secret_key,
+        access_key=credentials.access_key,
+        region=session.region_name,
+        session_token=credentials.token)
+
+    dataset = ds.dataset(
+        "ops-platform-level1a-v0.3/ReconstructedData",
+        filesystem=s3,)
+    #if start_date.tzinfo == None:
+    #    start_date = start_date.replace(tzinfo=timezone.utc)
+    stop_date = start_date + deltat
+    table = dataset.to_table(
+        filter=(
+            ds.field('time') >= Timestamp(start_date)
+        ) & (
+            ds.field('time') <= Timestamp(stop_date)
+        )
+    )
+    df = table.to_pandas()
+    return np.vstack(df.afsAttitudeState).mean(axis=0)
 
 def findtangent(t, pos, FOV):
     res = minimize_scalar(funheight, args=(t, pos, FOV), bracket=(1e5, 3e5))
