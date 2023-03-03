@@ -18,15 +18,15 @@ channel_var = {'1': 'IR1', '2': 'IR4', '3': 'IR3',
                '7': 'NADIR'}
 
 # optimal ranges for cbar [L1b_0, L1b_1, L1a_0, L1a_1]
-range_UV1 = [0, 30, 400, 1100]
-range_UV2 = [0, 30, 1000, 5000]
-range_NADIR = [0, 75, 8000, 40000]
-ranges_dayglow = {'IR1': [0, 30, 4000, 15000], 'IR2': [0, 30, 6000, 21000],
-                  'IR3': [0, 30, 3500, 8000], 'IR4': [0, 30, 2500, 7000],
+range_UV1 = [0, 450, 500, 2000]
+range_UV2 = [0, 450, 1500, 8000]
+range_NADIR = [0, 30, 8000, 40000]
+ranges_dayglow = {'IR1': [0, 700, 1500, 14000], 'IR2': [0, 400, 2000, 20000],
+                  'IR3': [0, 90, 1500, 10000], 'IR4': [0, 90, 1500, 10000],
                   'UV1': range_UV1, 'UV2': range_UV2,
                   'NADIR': range_NADIR}
-ranges_nightglow = {'IR1': [0, 5, 300, 2000], 'IR2': [0, 5,200, 2000],
-                    'IR3': [0, 5, 400, 1300], 'IR4': [0, 5, 400, 1300],
+ranges_nightglow = {'IR1': [0, 50, 300, 2000], 'IR2': [0, 35, 200, 2000],
+                    'IR3': [0, 20, 400, 1300], 'IR4': [0, 20, 400, 1300],
                     'UV1': range_UV1, 'UV2': range_UV2,
                     'NADIR': range_NADIR}
 rswitch_sza = 96 # TPsza dayglow/nightglow change
@@ -124,6 +124,7 @@ def save_figure(outpath, CCD, format, filename=None):
 
     plt.tight_layout()
     plt.savefig(f'{outpath}/{outname}.{format}', format=format)
+    #plt.close()
 
 
 def calculate_range(image, ranges, nstd):
@@ -172,12 +173,13 @@ def make_ths(CCD):
     #print (ths.shape)
     for i,col in enumerate(xpixels): 
         ths[i,:]=coordinates.col_heights(CCD,col,40,spline=True)(ypixels)
-    return xpixels,ypixels,ths.T
+    return 0.5+xpixels,ypixels,ths.T
 
 def update_plot_cbar(CCD, ax, fig, cbar,
                      outdir, nstd, cmap,
                      ranges, optimal_range, format,
-                     save=False, fontsize=10):
+                     save=False, fontsize=10,
+                     TPheights=True):
     """Updates and plots colorbar. 
     Used in all_orbit_plots to enable animations.
 
@@ -214,7 +216,7 @@ def update_plot_cbar(CCD, ax, fig, cbar,
     fig, ax, img = plot_image(CCD, ax, fig, outdir,
                               nstd, cmap,
                               ranges, optimal_range, format,
-                              save, fontsize)
+                              save, fontsize, TPheights)
     cbar.update_normal(img)
     cbar.ax.xaxis.set_ticks_position('top')
     cbar.ax.tick_params(color='w')
@@ -259,10 +261,10 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon,
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
                       linewidth=0.9, color='black',
                       alpha=0.5, linestyle='-')
-    gl.xlabels_top = labels
-    gl.xlabels_bottom = labels
-    gl.ylabels_left = labels
-    gl.ylabels_right = False
+    gl.top_labels = labels
+    gl.bottom_labels = labels
+    gl.left_labels = labels
+    gl.right_labels = False
     gl.xlines = True
     ax.set_xlabel('longitude [deg]')
     ax.set_ylabel('latitude [deg]')
@@ -319,7 +321,7 @@ def generate_histogram(ax, image, ranges, nstd):
 def plot_image(CCD, ax=None, fig=None, outpath=None,
                nstd=2, cmap='inferno', ranges=None,
                optimal_range=False, format='png', save=True,
-               fontsize=10):
+               fontsize=10, TPheights=True):
     """
     Function to plot single MATS image
 
@@ -394,21 +396,22 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     if (channel in flipped_CCDs) and (lvl == 'L1a'):
         nrows = np.arange(0, CCD['NROW'])
         ncols = np.arange(0, CCD['NCOL']+1)
-        img = ax.pcolormesh(np.flip(ncols), nrows,
+        img = ax.pcolorfast(np.flip(ncols), nrows,
                             image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
     else:
-        img = ax.pcolormesh(image, cmap=cmap,
+        img = ax.pcolorfast(image, cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
     # add heights
     if lvl == 'L1b' and (CCD['CCDSEL'] != 7):
-        CS = ax.contour(*make_ths(CCD), [50000,
-                        60000, 70000, 80000, 90000,
-                        100000, 110000,200000,250000,300000],
-                        colors='w', alpha=0.2)
-        ax.clabel(CS, inline=True)
+        if TPheights:
+            CS = ax.contour(*make_ths(CCD), [50000,
+                            60000, 70000, 80000, 90000,
+                            100000, 110000,200000,250000,300000],
+                            colors='w', alpha=0.2)
+            ax.clabel(CS, inline=True)
 
     # add title
     ax.set_title(f'ch: {channel}; time: '
@@ -589,7 +592,8 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 
 def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
-                      ranges=None, optimal_range=False, format='png', version=None):
+                      ranges=None, optimal_range=False, format='png', version=None,
+                      num_name=False):
     """Plots all channels in one plot. Generates one figure per CCD. If multiple images
         are supplied they will be added in sequence so that animations can be generated.
         The script makes sure animations will look good by allowing for no rescaling between 
@@ -615,7 +619,11 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         file format of output, by default 'png'
     version : float, optional
         data version, willl be supplied in CCD later, by default None
+    num_name : bool, optional
+        if output files should be named in numerical order
     """
+
+    plt.ioff()
 
     check_type(CCD_dataframe)
     lvl = check_level(CCD_dataframe)
@@ -625,16 +633,17 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
     ax=ax.ravel()
 
     #dummy data for generation of cbar
-    Z = np.random.rand(999, 999)
-    x = np.arange(1, 1000, 1) 
-    y = np.arange(1, 1000, 1) 
+    Z = np.random.rand(99, 1)
+    Z = np.append(Z,Z,axis=1)
+    x = np.arange(1, 3, 1)
+    y = np.arange(1, 100, 1) 
 
     # generate cbars
     cbaxes, cbars = [], []
     for i in range(0,len(ax)-2):
         ax[i].set_xticklabels([])
         ax[i].set_yticklabels([])
-        img = ax[i].pcolormesh(x,y,Z,cmap=cmap)
+        img = ax[i].pcolorfast(x,y,Z,cmap=cmap, alpha=1)
         cbaxes.append(inset_axes(ax[i], width="40%", height="6%", loc=8))
         cbars.append(plt.colorbar(img, cax = cbaxes[i], orientation='horizontal'))
         cbars[i].set_ticks([])
@@ -647,6 +656,17 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
     ax[4].set_title('IR4 (idle..)')
     ax[5].set_title('UV2 (idle..)')
     ax[6].set_title('NADIR (idle..)')
+
+    # plot TP heights bool
+    TPh_bool={1: True, 2: True, 3: True,
+              4: True, 5: True, 6: True,
+              7: False}
+    TPhs = {1: None, 2: None, 3: None, 4: None,
+            5: None, 6: None, 7: None}
+
+    # CCD axis dictionary
+    CCDax = {1: 0, 2: 4, 3: 1, 4: 3,
+             5: 2, 6: 5, 7: 6}
 
     # remove and replace some ax
     ax[8].remove()
@@ -661,6 +681,10 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         if not os.path.exists(outpath):
             os.makedirs(outpath)
 
+    # image count (to reduce idle images; especially when looping this function)
+    img_count = 0
+    draw_map = True # for error with cartopy
+
     for index, CCD in CCD_dataframe.iterrows():
 
         (satlat, satlon,
@@ -668,32 +692,22 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
          TPlat, TPlon,
          TPsza, TPssa, TPlt) = calculate_geo(CCD)
 
-        # animation stuff (update plot and cbar) 
-        if CCD['CCDSEL'] == 3:
-            update_plot_cbar(CCD, ax[1], fig, cbars[1],
-                             outdir, nstd, cmap,
-                             ranges, optimal_range, format,
-                             save=False, fontsize=10)
+        update_plot_cbar(CCD, ax[CCDax[CCD['CCDSEL']]], fig,
+                         cbars[CCDax[CCD['CCDSEL']]],
+                         outdir, nstd, cmap,
+                         ranges, optimal_range, format,
+                         save=False, fontsize=10, TPheights=False)
 
-        elif CCD['CCDSEL'] == 2:
-            update_plot_cbar(CCD, ax[4], fig, cbars[4],
-                             outdir, nstd, cmap,
-                             ranges, optimal_range, format,
-                             save=False, fontsize=10)
-        elif CCD['CCDSEL'] == 5:
-            update_plot_cbar(CCD, ax[2], fig, cbars[2],
-                             outdir, nstd, cmap,
-                             ranges, optimal_range, format,
-                             save=False, fontsize=10)
+        if (TPh_bool[CCD['CCDSEL']]) and (lvl == 'L1b'):
+            TPhs[CCD['CCDSEL']] = make_ths(CCD)
+            TPh_bool[CCD['CCDSEL']] = False
+            
+        if TPhs[CCD['CCDSEL']] is not None:
+            CS = ax[CCDax[CCD['CCDSEL']]].contour(*TPhs[CCD['CCDSEL']], [50000, 60000, 70000, 80000, 90000, 100000, 110000,200000,250000,300000],
+                                                  colors='w', alpha=0.2)
+            ax[CCDax[CCD['CCDSEL']]].clabel(CS, inline=True)
 
-        else:
-            update_plot_cbar(CCD, ax[CCD['CCDSEL'] - 1],
-                             fig, cbars[CCD['CCDSEL'] - 1],
-                             outdir, nstd, cmap,
-                             ranges, optimal_range, format,
-                             save=False, fontsize=10)
-
-        if CCD['CCDSEL'] == 1:
+        if (CCD['CCDSEL'] == 1) and draw_map:
             ax_cart.remove()
             ax_cart = fig.add_subplot(3, 3, 8, projection=ccrs.PlateCarree())
             ax_cart.set_yticklabels([])
@@ -732,9 +746,24 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
             plt.figtext(0.70, 0.19, 'units: counts', weight='bold',fontsize= 11)
         if lvl == 'L1b':
             plt.figtext(0.70, 0.19, 'units: photons/nm', weight='bold',fontsize= 11)
-        save_figure(outpath, CCD, format, filename=str(index))
+        
+        img_count = img_count + 1
+
+        if (img_count <= 5) and (CCD['CCDSEL'] == 1):
+            draw_map = False # cartopy error when looping
+
+        if img_count > 5:
+
+            if not num_name:
+                save_figure(outpath, CCD, format, filename=str(index))
+            else:
+                save_figure(outpath, CCD, format, filename=str(img_count))
+
+            draw_map = True # cartopy error when looping
 
         for i in range(0,len(frames)):
             Artist.remove(frames[i])
+
+    plt.close()
 
     return

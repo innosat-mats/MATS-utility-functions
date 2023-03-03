@@ -1,10 +1,11 @@
 from pyarrow import fs
+import pyarrow.dataset as ds
 import boto3
 from datetime import timezone
 from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows
 #%matplotlib widget
 
-def read_MATS_data(start_date,end_date,version='0.4',level='1a'):
+def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
     session = boto3.session.Session(profile_name="mats")
     credentials = session.get_credentials()
 
@@ -19,7 +20,7 @@ def read_MATS_data(start_date,end_date,version='0.4',level='1a'):
     if end_date.tzinfo == None:
         end_date = end_date.replace(tzinfo=timezone.utc)
 
-    ccd_data = read_ccd_data_in_interval(start_date, end_date, f"ops-payload-level{level}-v{version}", s3)
+    ccd_data = read_ccd_data_in_interval(start_date, end_date, f"ops-payload-level{level}-v{version}", s3,filter=filter)
 
     if level == '1a':
         add_ccd_item_attributes(ccd_data)
@@ -29,3 +30,30 @@ def read_MATS_data(start_date,end_date,version='0.4',level='1a'):
         raise Warning('Dataset is empty check version or time interval')
 
     return (ccd_data)
+
+def read_MATS_PM_data(start_date,end_date,filter=None,version='0.2',level='1a'):
+    session = boto3.session.Session(profile_name="mats")
+    credentials = session.get_credentials()
+
+    s3 = fs.S3FileSystem(
+        secret_key=credentials.secret_key,
+        access_key=credentials.access_key,
+        region=session.region_name,
+        session_token=credentials.token)
+
+    if start_date.tzinfo == None:
+        start_date = start_date.replace(tzinfo=timezone.utc)
+    if end_date.tzinfo == None:
+        end_date = end_date.replace(tzinfo=timezone.utc)
+
+    dataset = ds.dataset(f"ops-payload-level{level}-pm-v{version}", filesystem=s3)
+    
+    table = dataset.to_table(filter=(ds.field('PMTime') > start_date) 
+                           & (ds.field('PMTime') < end_date) )
+
+    df = table.to_pandas().reset_index().set_index('TMHeaderTime')
+
+    if len(df) == 0:
+        raise Warning('Dataset is empty check version or time interval')
+
+    return (df)
