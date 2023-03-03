@@ -283,7 +283,7 @@ def generate_map(CCD, fig, ax, satlat, satlon, TPlat, TPlon,
     return fig, ax
 
 
-def generate_histogram(ax, image, ranges, nstd):
+def generate_histogram(ax, image, ranges, nstd, nbins=None):
     """Generates histogram based on image
 
     Parameters
@@ -296,6 +296,8 @@ def generate_histogram(ax, image, ranges, nstd):
         ranges for plot
     nstd : _type_
         number of standard deviations
+    nbins : int, optional
+        number of bins (set to None to get an optimized value)
 
     Returns
     -------
@@ -303,9 +305,14 @@ def generate_histogram(ax, image, ranges, nstd):
         axis with histogram
     """
     # calculate means
-    vmin, vmax, mean, std = calculate_range(image, ranges, nstd)
+    vmin, vmax, mean, std = calculate_range(image, ranges, nstd)    
 
-    nbins = int(1 + np.ceil(np.log2(len(image.flatten()))))
+    if nbins == None : # default nbins value
+        nbins = int(1 + np.ceil(np.log2(len(image.flatten()))))
+    # checking nbins type and value
+    if type(nbins)is not int or nbins<1: 
+        sys.exit("nbins needs to be a positive integer")
+    
     ax.hist(image.flatten(), bins=nbins, alpha=0.6,
             density=True, range=[mean-nstd*std, mean+nstd*std])
     ax.set_xlabel('counts')
@@ -494,7 +501,7 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
                            format=format)
 
 
-def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
+def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
                ranges=None, optimal_range=False, format='png'):
     """
        Generates plots from (several) CCD items: image, histogram and map.
@@ -508,6 +515,8 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
         path where images will be saved
     nstd : int, optional
         Number of standard deviations for cbar and histogram, by default 2
+    nbins : int, optional
+        number of bins in the histogram (set to None to get an optimized value)
     cmap : str, optional
         Colourmap for image, by default 'inferno'
     ranges : tuple, optional
@@ -582,7 +591,7 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
                 # plot histogram
                 generate_histogram(ax2, image, ranges,
-                                   nstd)
+                                   nstd, nbins = nbins)
 
                 save_figure(outpath, CCD, format)
                 fig.clear()
