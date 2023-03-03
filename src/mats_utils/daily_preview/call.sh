@@ -17,7 +17,7 @@ dates=$(date +'%Y_%m_%d')
 outdir=${MATS_dir}'animations/daily/'$dates'/'
 
 # measurement date
-measurement_date="$(date -d '-3 days' +'%Y-%m-%d')"
+measurements_date="$(date -d '-3 days' +'%Y-%m-%d')"
 
 # initiate
 echo -e "DAILY ANIMATION (${dates}): Initiating ..."
