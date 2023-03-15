@@ -19,6 +19,7 @@ import pyarrow.dataset as ds  # type: ignore
 from pandas import DataFrame, Timestamp  # type: ignore
 from skyfield import api as sfapi
 from scipy.interpolate import RegularGridInterpolator
+import math
 
 def funheight(s, t, pos, FOV):
     newp = pos + s * FOV
@@ -223,8 +224,8 @@ def pix_deg2(ccditem, xpixel, ypixel):
     yCCDpix = (nrskip + nrbin * (ypixel+0.5)) # y position of the pixel on the CCD (0.5 at the bottom, 510.5 on top)
     xCCDpix = (ncskip + ncbin * (xpixel+0.5)) # x position of the pixel on the CCD (0.5 on the left, 2047.5 on the right)
     
-    xdeg = (180/pi)*np.arctan(d*(xCCDpix/2048-0.5)/f) # angular deviation along the x axis in degrees
-    ydeg = (180/pi)*np.arctan(h*(yCCDpix/511-0.5)/f) # angular deviation along the y axis in degrees
+    xdeg = (180/math.pi)*np.arctan(d*(xCCDpix/2048-0.5)/f) # angular deviation along the x axis in degrees
+    ydeg = (180/math.pi)*np.arctan(h*(yCCDpix/511-0.5)/f) # angular deviation along the y axis in degrees
     return xdeg, ydeg
 
 def deg_map(ccditem):
