@@ -184,50 +184,6 @@ def angles(ccditem):
     return nadir_sza, TPsza, TPssa, tpLT
 
 
-def pix_deg2(ccditem, xpixel, ypixel):
-    """
-    Function to get the x and y angle from a pixel relative to the center of the CCD
-    WARNING : no images are flipped in this function
-    
-    Parameters
-    ----------
-    ccditem : CCDitem
-        measurement
-    xpixel : int or array[int]
-        x coordinate of the pixel(s) in the image
-    ypixel : int or array[int]
-        y coordinate of the pixel(s) in the image
-        
-    Returns
-    -------
-    xdeg : float or array[float]
-        angular deviation along the x axis in degrees (relative to the center of the CCD)
-    ydeg : float or array[float]
-        angular deviation along the y axis in degrees (relative to the center of the CCD) 
-    """
-    h = 6.9 # height of the CCD in mm
-    d = 27.6 # width of the CCD in mm
-    # selecting effective focal length
-    if (ccditem['CCDSEL']) == 7: # NADIR channel
-        f = 50.6 # effective focal length in mm
-    else: # LIMB channels
-        f = 261    
-    
-    ncskip = ccditem['NCSKIP']
-    try:
-        ncbin = ccditem['NCBIN CCDColumns']
-    except:
-        ncbin = ccditem['NCBINCCDColumns']
-    nrskip = ccditem['NRSKIP']
-    nrbin = ccditem['NRBIN']
-        
-    yCCDpix = (nrskip + nrbin * (ypixel+0.5)) # y position of the pixel on the CCD (0.5 at the bottom, 510.5 on top)
-    xCCDpix = (ncskip + ncbin * (xpixel+0.5)) # x position of the pixel on the CCD (0.5 on the left, 2047.5 on the right)
-    
-    xdeg = (180/math.pi)*np.arctan(d*(xCCDpix/2048-0.5)/f) # angular deviation along the x axis in degrees
-    ydeg = (180/math.pi)*np.arctan(h*(yCCDpix/511-0.5)/f) # angular deviation along the y axis in degrees
-    return xdeg, ydeg
-
 def deg_map(ccditem):
     """
     Function to get the x and y angular deviation map for each pixel of the image. 
@@ -251,8 +207,8 @@ def deg_map(ccditem):
     a,b = np.shape(im)
     X = range(b)
     Y = range(a)
-    xpixel, ypixel = np.meshgrid(X,Y)
-    xmap,ymap = pix_deg2(ccditem, xpixel, ypixel)
+    xpixel, ypixel = np.meshgrid(X,Y,sparse=True)
+    xmap,ymap = pix_deg(ccditem, xpixel, ypixel)
     return xmap,ymap
 
 
@@ -307,7 +263,7 @@ def findsurface(t, pos, FOV):
     return res
 
 
-def NADIR_geolocation(ccditem,x_step=2,y_step=2):
+def NADIR_geolocation(ccditem,x_step=2,y_step=2,interp_method='cubic'):
     """
     Function to get the latitude, longitude and solar zenith angle map for each pixel of the image.
     The values are calculated for some points and then interpolated for each pixel.
@@ -321,6 +277,8 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2):
         step along the x-axis in the image between 2 sampled points used for interpolation. The default value is 2.
     y_step : int
         step along the y-axis in the image between 2 sampled points used for interpolation. The default value is 2.
+    interp_method :
+        interpolation method : 'linear', 'nearest', 'slinear', 'cubic', 'quintic' and 'pchip'
             
     Returns
     -------
@@ -339,7 +297,7 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2):
     ts=sfapi.load.timescale()
     t=ts.from_datetime(ccditem['EXPDate'].replace(tzinfo=sfapi.utc)) # exposure time  
     q=ccditem.afsAttitudeState
-    quat=R.from_quat(np.roll(q,-1)) # quaternion of MATS attitude (for the LIMB imager) 
+    quat=R.from_quat(np.roll(q,-1)) # quaternion of MATS attitude (for the satellite frame) 
     pos=ccditem.afsGnssStateJ2000[0:3] # position of MATS
     
     xd = range(0,b,x_step) # sampled pixels on the x axis
@@ -372,9 +330,9 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2):
                 SZA[i,j]=90-((earth+wgs84.subpoint(newp)).at(t).observe(sun).apparent().altaz())[0].degrees
     
     # interpolating the results along all the pixels
-    interp_lat = RegularGridInterpolator((yd,xd),LAT,method="quintic",bounds_error=False,fill_value=None) 
-    interp_lon = RegularGridInterpolator((yd,xd),LON,method="quintic",bounds_error=False,fill_value=None)
-    interp_sza = RegularGridInterpolator((yd,xd),SZA,method="quintic",bounds_error=False,fill_value=None)
+    interp_lat = RegularGridInterpolator((yd,xd),LAT,interp_method,bounds_error=False,fill_value=None) 
+    interp_lon = RegularGridInterpolator((yd,xd),LON,interp_method,bounds_error=False,fill_value=None)
+    interp_sza = RegularGridInterpolator((yd,xd),SZA,interp_method,bounds_error=False,fill_value=None)
 
     X_map,Y_map = np.meshgrid(range(b),range(a))
     lat_map = interp_lat((Y_map,X_map))
