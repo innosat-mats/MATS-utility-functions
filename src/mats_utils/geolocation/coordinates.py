@@ -207,7 +207,7 @@ def deg_map(ccditem):
     a,b = np.shape(im)
     X = range(b)
     Y = range(a)
-    xpixel, ypixel = np.meshgrid(X,Y,sparse=True)
+    xpixel, ypixel = np.meshgrid(X,Y)
     xmap,ymap = pix_deg(ccditem, xpixel, ypixel)
     return xmap,ymap
 
@@ -295,7 +295,7 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2,interp_method='cubic'):
 
     metoOHB  = R.from_matrix([[0,0,-1],[0,-1,0],[-1,0,0]])
     ts=sfapi.load.timescale()
-    t=ts.from_datetime(ccditem['EXPDate'].replace(tzinfo=sfapi.utc)) # exposure time  
+    t=ts.from_datetime((ccditem['EXPDate']+timedelta(seconds=ccditem['TEXPMS']/(2*1000))).replace(tzinfo=sfapi.utc)) # exposure time (middle of the exposure timespan)  
     q=ccditem.afsAttitudeState
     quat=R.from_quat(np.roll(q,-1)) # quaternion of MATS attitude (for the satellite frame) 
     pos=ccditem.afsGnssStateJ2000[0:3] # position of MATS
