@@ -117,7 +117,7 @@ def xyz2radec(vector, deg=False, positivera=False):
     ra = np.arctan2(vector[1],vector[0])
     if positivera : 
         if ra <0 : ra+=2*np.pi
-    dec = np.arcsin(vector[2]/np.sqrt(np.dot(vector,vector)))
+    dec = np.arcsin(vector[2,:]/norm(vector,axis=0))
     if deg :
         ra*=180./np.pi
         dec*=180./np.pi
