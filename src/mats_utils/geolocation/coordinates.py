@@ -263,7 +263,7 @@ def findsurface(t, pos, FOV):
     return res
 
 
-def NADIR_geolocation(ccditem,x_step=2,y_step=2,interp_method='cubic'):
+def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic'):
     """
     Function to get the latitude, longitude and solar zenith angle map for each pixel of the image.
     The values are calculated for some points and then interpolated for each pixel.
@@ -273,12 +273,13 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2,interp_method='cubic'):
     ----------
     ccditem : CCDitem
         measurement
-    x_step : int
-        step along the x-axis in the image between 2 sampled points used for interpolation. The default value is 2.
+    x_sample : int
+        number of geolocated points along the x axis used for the interpolation. Default value is None, which means that there is no interpolation along the x-axis (each value is computed)
     y_step : int
-        step along the y-axis in the image between 2 sampled points used for interpolation. The default value is 2.
+        number of geolocated points along the y axis used for the interpolation. Default value is None, which means that there is no interpolation along the y-axis (each value is computed)
     interp_method :
         interpolation method : 'linear', 'nearest', 'slinear', 'cubic', 'quintic' and 'pchip'
+        WARNING : choose the minimum x and y sampling according to the interpolation method
             
     Returns
     -------
@@ -290,7 +291,7 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2,interp_method='cubic'):
         map giving the solar zenith angle for each pixel in the image
     """
     im = ccditem['IMAGE']
-    x_deg_map, y_deg_map = deg_map(ccditem) # creating angle deviation map for each pixel (degress)
+    x_deg_map, y_deg_map = deg_map(ccditem) # creating angle deviation map for each pixel (degrees)
     a,b = np.shape(im)
 
     metoOHB  = R.from_matrix([[0,0,-1],[0,-1,0],[-1,0,0]])
@@ -300,28 +301,41 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2,interp_method='cubic'):
     quat=R.from_quat(np.roll(q,-1)) # quaternion of MATS attitude (for the satellite frame) 
     pos=ccditem.afsGnssStateJ2000[0:3] # position of MATS
     
-    xd = range(0,b,x_step) # sampled pixels on the x axis
-    yd = range(0,a,y_step) # sampled pixels on the y axis
-    LAT = np.zeros((len(yd),len(xd)))
-    LON = np.zeros((len(yd),len(xd)))
-    SZA = np.zeros((len(yd),len(xd)))
+    if x_sample == None or x_sample >= b: # no upsampling
+        x_sample = b
+    if y_sample == None or y_sample >= a: # no upsampling
+        y_sample = a
+    
+    interpolation = True
+    if x_sample == b and y_sample == a: # if both axis have enough sampling points, there is no interpolation
+        interpolation = False
+
+    xd = np.linspace(np.min(x_deg_map),np.max(x_deg_map),x_sample) # sampled angles on the x axis
+    yd = np.linspace(np.min(y_deg_map),np.max(y_deg_map),y_sample) # sampled angles on the y axis
+    x_deg_sample,y_deg_sample = np.meshgrid(xd,yd)
+
+    if not interpolation:
+        y_deg_sample,x_deg_sample = y_deg_map,x_deg_map # the sampled angles are the calculated angles for each pixel
+
+    # sampled latitude, longitude and solar zenith angle values
+    LAT = np.zeros((y_sample,x_sample))
+    LON = np.zeros((y_sample,x_sample))
+    SZA = np.zeros((y_sample,x_sample))
 
     # computing the latitude, longitude and solar zenith angles at the intersection of the line of sight and the earth surface
     # only the line of sights from some sampled pixels are computed
-    for i in range(len(yd)):
-        for j in range(len(xd)):
-                x = xd[j]
-                y = yd[i]
+    for i in range(y_sample):
+        for j in range(x_sample):
                 # angular transformations
                 # rotation from the line of sight of the LIMB imager to the line of sight of the NADIR pixel
-                angle = R.from_euler('XYZ', [x_deg_map[y,x],-(90-23)+y_deg_map[y,x],0] , degrees=True).apply([1, 0, 0])
+                angle = R.from_euler('XYZ', [x_deg_sample[i,j],-(90-23)+y_deg_sample[i,j],0] , degrees=True).apply([1, 0, 0])
                 FOV = quat.apply(metoOHB.apply(angle)) # attitude state for the line of sight of the NADIR pixel    
                 # finding the distance between the point pos and the Geoid along the line of sight
                 res = findsurface(t,pos,FOV)
                 newp = pos + res.x * FOV 
                 newp = ICRF(Distance(m=newp).au, t=t, center=399) # point at the intersection between the line of sight at the pixel and the Geoid surface
                 LAT[i,j]=wgs84.subpoint(newp).latitude.degrees # latitude of the point
-                LON[i,j]=wgs84.subpoint(newp).longitude.degrees # longitude of the point    
+                LON[i,j]=wgs84.subpoint(newp).longitude.degrees # longitude of the point E [-180,+180] 
 
                 # finding the solar zenith angle of the point
                 planets = sfapi.load('de421.bsp')
@@ -329,14 +343,22 @@ def NADIR_geolocation(ccditem,x_step=2,y_step=2,interp_method='cubic'):
                 sun=planets['Sun']
                 SZA[i,j]=90-((earth+wgs84.subpoint(newp)).at(t).observe(sun).apparent().altaz())[0].degrees
     
-    # interpolating the results along all the pixels
-    interp_lat = RegularGridInterpolator((yd,xd),LAT,interp_method,bounds_error=False,fill_value=None) 
-    interp_lon = RegularGridInterpolator((yd,xd),LON,interp_method,bounds_error=False,fill_value=None)
-    interp_sza = RegularGridInterpolator((yd,xd),SZA,interp_method,bounds_error=False,fill_value=None)
+    # to get a continuous longitudinal field
+    if np.max(LON)-np.min(LON) > 300: # this condition is met if points are on both sides of the -180/+180 deg line
+        LON = np.where(LON<0,LON+360,LON)
 
-    X_map,Y_map = np.meshgrid(range(b),range(a))
-    lat_map = interp_lat((Y_map,X_map))
-    lon_map = interp_lon((Y_map,X_map))
-    sza_map = interp_sza((Y_map,X_map))
+    if interpolation: # interpolating the results along all the pixels
+        # each interpolator object takes as argument an y and x angular deviation and gives a lat/lon/sza value
+        interp_lat = RegularGridInterpolator((yd,xd),LAT,interp_method,bounds_error=False,fill_value=None) 
+        interp_lon = RegularGridInterpolator((yd,xd),LON,interp_method,bounds_error=False,fill_value=None)
+        interp_sza = RegularGridInterpolator((yd,xd),SZA,interp_method,bounds_error=False,fill_value=None)
+        # interpolating on the real angular deviations for each pixel
+        lat_map = interp_lat((y_deg_map,x_deg_map))
+        lon_map = interp_lon((y_deg_map,x_deg_map))
+        sza_map = interp_sza((y_deg_map,x_deg_map))
+    else: # no interpolation       
+        lat_map = LAT
+        lon_map = LON
+        sza_map = SZA
 
     return(lat_map,lon_map,sza_map)
