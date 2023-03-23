@@ -4,10 +4,10 @@ from mats_l1_processing.instrument import Instrument
 from mats_l1_processing.read_parquet_functions import dataframe_to_ccd_items
 from pandas import concat, DataFrame
 
-def calibrate_dataframe(ccd_data: DataFrame, instrument: Instrument):
+def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument):
     """Calibrate l1a dataframe
-    Takes in a l1a dataframe read via read_MATS_data and and instrument object. Then calibrates the data and returns
-    l1b data as a Pandas Dataframe as though it was downloaded using read_MATS_data.
+    Takes in a l1a dataframe read via read_MATS_data (so with add_ccd_attributes) 
+    and and instrument object. Then calibrates the data and returns l1b data as a Pandas Dataframe as though it was downloaded using read_MATS_data.
 
     Args:
         ccd_data (DataFrame):   l1a dataframe
@@ -16,6 +16,8 @@ def calibrate_dataframe(ccd_data: DataFrame, instrument: Instrument):
     Returns:
         l1b_data (DataFrame):   Dataframe containing l1b data
     """
+
+    ccd_data = ccd_data_in.drop(["IMAGE","channel","flipped","temperature","temperature_HTR","temperature_ADC","id"],axis=1)
 
     ccd_items = dataframe_to_ccd_items(
             ccd_data,
@@ -58,15 +60,17 @@ def calibrate_dataframe(ccd_data: DataFrame, instrument: Instrument):
     
     l1b_data = concat([
         ccd_data,
-        calibrated.set_index(ccd_data.index),
-    ], axis=1).set_index("EXPDate").sort_index()
+        calibrated,
+    ], axis=1)
+    l1b_data.set_index("EXPDate").sort_index()
+    l1b_data.reset_index()
     l1b_data.drop(["ImageData", "Errors", "Warnings"], axis=1, inplace=True)
     l1b_data = l1b_data[l1b_data.ImageCalibrated != None]  # noqa: E711
-    l1b_data["ImageCalibrated"] = [
-        ic.tolist() for ic in l1b_data["ImageCalibrated"]
-    ]
-    l1b_data["CalibrationErrors"] = [
-        ce.tolist() for ce in l1b_data["CalibrationErrors"]
-    ]
+#    l1b_data["ImageCalibrated"] = [
+#        ic.tolist() for ic in l1b_data["ImageCalibrated"]
+#    ]
+#    l1b_data["CalibrationErrors"] = [
+#        ce.tolist() for ce in l1b_data["CalibrationErrors"]
+#    ]
 
     return l1b_data
