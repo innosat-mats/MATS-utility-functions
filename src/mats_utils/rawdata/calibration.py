@@ -18,7 +18,7 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument):
     """
 
     ccd_data = ccd_data_in.drop(["IMAGE","channel","flipped","temperature","temperature_HTR","temperature_ADC","id"],axis=1)
-
+    #ccd_data.reset_index(inplace=True)
     ccd_items = dataframe_to_ccd_items(
             ccd_data,
             remove_empty=False,
@@ -57,7 +57,7 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument):
             "temperature_ADC",
         ],
     )
-    
+    calibrated.set_index(ccd_data.index,inplace=True)
     l1b_data = concat([
         ccd_data,
         calibrated,
