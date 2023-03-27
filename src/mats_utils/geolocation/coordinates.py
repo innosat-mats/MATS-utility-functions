@@ -188,9 +188,9 @@ def deg_map(ccditem):
     """
     Function to get the x and y angular deviation map for each pixel of the image. 
     The deviation is given in degrees relative to the center of the CCD
-    WARNING : no images are flipped before calculating the angular deviation
     
-    Parameters
+    
+    Arguments
     ----------
     ccditem : CCDitem
         measurement
@@ -218,7 +218,7 @@ def funheight_square(s, t, pos, FOV):
      at time t.
     
     
-    Parameters
+    Arguments
     ----------
     s : float
         length along the straight line
@@ -245,7 +245,7 @@ def findsurface(t, pos, FOV):
      at time t, along the line oriented along the FOV direction and starting at position pos
     
     
-    Parameters
+    Arguments
     ----------
     t : skyfield.timelib.Time
         time
@@ -269,7 +269,7 @@ def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic
     The values are calculated for some points and then interpolated for each pixel.
     WARNING : no images are flipped
     
-    Parameters
+    Arguments
     ----------
     ccditem : CCDitem
         measurement
