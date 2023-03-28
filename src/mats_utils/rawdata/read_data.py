@@ -3,6 +3,7 @@ import pyarrow.dataset as ds
 import boto3
 from datetime import timezone
 from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows
+import numpy as np
 #%matplotlib widget
 
 def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
@@ -25,6 +26,9 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
     if level == '1a':
         add_ccd_item_attributes(ccd_data)
         remove_faulty_rows(ccd_data)
+
+    if level == '1b':
+        ccd_data["ImageCalibrated"] = ccd_data.apply(list_to_ndarray, axis=1)
 
     if len(ccd_data) == 0:
         raise Warning('Dataset is empty check version or time interval')
@@ -57,3 +61,9 @@ def read_MATS_PM_data(start_date,end_date,filter=None,version='0.2',level='1a'):
         raise Warning('Dataset is empty check version or time interval')
 
     return (df)
+
+def list_to_ndarray(l1b_data_row):
+    '''
+        Converts a list of 1d arrays into a 2d numpy array
+    '''
+    return np.stack(l1b_data_row.ImageCalibrated) 

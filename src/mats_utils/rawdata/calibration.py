@@ -62,7 +62,7 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument):
         ccd_data,
         calibrated,
     ], axis=1)
-    l1b_data.set_index("EXPDate").sort_index()
+    l1b_data.set_index("TMHeaderTime").sort_index()
     l1b_data.reset_index()
     l1b_data.drop(["ImageData", "Errors", "Warnings"], axis=1, inplace=True)
     l1b_data = l1b_data[l1b_data.ImageCalibrated != None]  # noqa: E711
