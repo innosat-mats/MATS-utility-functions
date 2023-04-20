@@ -6,6 +6,7 @@ from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,
 import numpy as np
 #%matplotlib widget
 
+
 def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
     session = boto3.session.Session(profile_name="mats")
     credentials = session.get_credentials()
@@ -14,6 +15,7 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
         secret_key=credentials.secret_key,
         access_key=credentials.access_key,
         region=session.region_name,
+        connect_timeout=10,
         session_token=credentials.token)
 
     if start_date.tzinfo == None:
