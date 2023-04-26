@@ -424,6 +424,9 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     ax.set_title(f'ch: {channel}; time: '
                  + f'{exp_date}; TEXPMS: {texpms}', fontsize=fontsize)
 
+    
+    if (save and outpath==None):
+        raise Exception ('You need to set an outpath or set save option to False') 
     if save:
         # print out additional information
         plt.figtext(0.1, 0.8, f'tpSZA: {TPsza:.6}',
