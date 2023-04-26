@@ -23,7 +23,14 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
     if end_date.tzinfo == None:
         end_date = end_date.replace(tzinfo=timezone.utc)
 
-    ccd_data = read_ccd_data_in_interval(start_date, end_date, f"ops-payload-level{level}-v{version}", s3,filter=filter)
+    if level == '1b' and version == "0.4":
+        filesystem = f"ops-payload-level{level}-v{version}" + "/ops-payload-level1a-v0.5"
+    elif level == '1b' and version == "0.3":
+        filesystem = f"ops-payload-level{level}-v{version}" + "/ops-payload-level1a-v0.4"
+    else:
+        filesystem = "ops-payload-level{level}-v{version}"
+    
+    ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
 
     if level == '1a':
         add_ccd_item_attributes(ccd_data)
