@@ -116,6 +116,7 @@ def fastheights(ccditem,nx=10,ny=10):
         ths[i,:]=col_heights(ccditem,col,40,spline=True)(ypixels)
     return xpixels,ypixels,ths.T
     for col in enumerate(range(nx)):
+        a = 5
     
 
    
