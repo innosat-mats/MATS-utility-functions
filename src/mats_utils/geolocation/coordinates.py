@@ -328,7 +328,7 @@ def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic
         for j in range(x_sample):
                 # angular transformations
                 # rotation from the line of sight of the LIMB imager to the line of sight of the NADIR pixel
-                angle = R.from_euler('XYZ', [x_deg_sample[i,j],-(90-23)+y_deg_sample[i,j],0] , degrees=True).apply([1, 0, 0])
+                angle = R.from_euler('XYZ', [x_deg_sample[i,j],-(90-24)+y_deg_sample[i,j],0] , degrees=True).apply([1, 0, 0])
                 FOV = quat.apply(metoOHB.apply(angle)) # attitude state for the line of sight of the NADIR pixel    
                 # finding the distance between the point pos and the Geoid along the line of sight
                 res = findsurface(t,pos,FOV)
@@ -362,3 +362,6 @@ def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic
         sza_map = SZA
 
     return(lat_map,lon_map,sza_map)
+
+
+
