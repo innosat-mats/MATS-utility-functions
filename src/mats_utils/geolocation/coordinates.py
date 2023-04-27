@@ -110,6 +110,8 @@ def fast_heights(ccditem, nx=10, ny=20):
     return interpolator((XX,YY))
 
 
+
+
 def satpos(ccditem):
     """Function giving the GPS position in lat lon alt.. 
 
