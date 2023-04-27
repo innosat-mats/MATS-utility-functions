@@ -386,3 +386,35 @@ def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic
         sza_map = SZA
 
     return(lat_map,lon_map,sza_map)
+
+
+
+def nadir_az(ccditem):
+    """
+    Function giving the solar azimuth angle for the nadir imager  
+   
+    Arguments:
+        ccditem 
+    Returns:
+        nadir_az: float
+            solar azimuth angle at nadir imager (degrees)       
+        
+    """
+    planets=load('de421.bsp')
+    earth,sun,moon= planets['earth'], planets['sun'],planets['moon']
+   
+     
+    d = ccditem['EXPDate']
+    ts =load.timescale()
+    t = ts.from_datetime(d)
+    satlat, satlon, satheight = satpos(ccditem)
+    TPlat, TPlon, TPheight = TPpos(ccditem)
+    
+    sat_pos=earth + wgs84.latlon(satlat, satlon, elevation_m=satheight)
+    TP_pos=earth + wgs84.latlon(TPlat, TPlon, elevation_m=TPheight)
+    sundir=sat_pos.at(t).observe(sun).apparent()
+    limbdir = TP_pos.at(t) - sat_pos.at(t)
+    obs_limb = limbdir.altaz()
+    obs_sun=sundir.altaz()
+    nadir_az = (obs_sun[1].degrees - obs_limb[1].degrees) #nadir solar azimuth angle    
+    return nadir_az
