@@ -28,7 +28,7 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
     elif level == '1b' and version == "0.3":
         filesystem = f"ops-payload-level{level}-v{version}" + "/ops-payload-level1a-v0.4"
     else:
-        filesystem = "ops-payload-level{level}-v{version}"
+        filesystem = f"ops-payload-level{level}-v{version}"
     
     ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
 
