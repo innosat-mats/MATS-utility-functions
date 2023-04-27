@@ -97,12 +97,12 @@ def heights(ccditem):
         ths[ :,col] = col_heights(ccditem, col)
     return ths
 
-def fast_heights(ccditem, nx=10, ny=20):
-    xpixels = np.linspace(0, ccditem['NCOL'], 5)
-    ypixels = np.linspace(0, ccditem['NROW'], 10)
+def fast_heights(ccditem, nx=5, ny=10):
+    xpixels = np.linspace(0, ccditem['NCOL'], nx)
+    ypixels = np.linspace(0, ccditem['NROW'], ny)
     ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
     for i,col in enumerate(xpixels): 
-        ths_tmp[i,:]=col_heights(ccditem,col,40,spline=True)(ypixels)
+        ths_tmp[i,:]=col_heights(ccditem,col,ny*2,spline=True)(ypixels)
     interpolator=RegularGridInterpolator((xpixels,ypixels),ths_tmp, method = 'cubic')  
     fullxgrid=np.arange(ccditem['NCOL']+1)  
     fullygrid=np.arange(ccditem['NROW'])
