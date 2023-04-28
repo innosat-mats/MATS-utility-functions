@@ -118,21 +118,6 @@ def fast_heights(ccditem, nx=5, ny=10):
     XX,YY=np.meshgrid(fullxgrid,fullygrid, sparse=True)
     return interpolator((XX,YY))
 
-def fastheights(ccditem,nx=10,ny=10):
-    xpixels = np.linspace(0, ccditem['NCOL'], nx)
-    ypixels = np.linspace(0, ccditem['NROW'], ny)
-    ths = np.zeros([xpixels.shape[0], ypixels.shape[0]])
-    print (ths.shape)
-    for i,col in enumerate(xpixels): 
-        ths[i,:]=col_heights(ccditem,col,40,spline=True)(ypixels)
-    return xpixels,ypixels,ths.T
-    for col in enumerate(range(nx)):
-        a = 5
-    
-
-   
-
-
 
 
 def satpos(ccditem):
