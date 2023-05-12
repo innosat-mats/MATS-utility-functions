@@ -27,6 +27,8 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
         filesystem = f"ops-payload-level{level}-v{version}" + "/ops-payload-level1a-v0.5"
     elif level == '1b' and version == "0.3":
         filesystem = f"ops-payload-level{level}-v{version}" + "/ops-payload-level1a-v0.4"
+    elif level == '0':
+        filesystem = f"ops-payload-level{level}-v{version}" + "/CCD"
     else:
         filesystem = f"ops-payload-level{level}-v{version}"
     
