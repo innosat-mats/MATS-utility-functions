@@ -4,6 +4,7 @@ import boto3
 from datetime import timezone
 from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows
 import numpy as np
+import pandas as pd
 #%matplotlib widget
 
 
