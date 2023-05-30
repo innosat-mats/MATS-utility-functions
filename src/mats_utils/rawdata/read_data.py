@@ -78,3 +78,63 @@ def list_to_ndarray(l1b_data_row):
         Converts a list of 1d arrays into a 2d numpy array
     '''
     return np.stack(l1b_data_row.ImageCalibrated) 
+
+
+def read_MATS_payload_data(start_date,end_date,data_type='HTR',filter=None,version='0.3'):
+    """Reads the payload data between the specified times. 
+
+    Args:
+        start (datetime):           Read payload data from this time (inclusive).
+        stop (datetime):            Read payload data up to this time (inclusive).
+        data_type (str):            key describing the different types of data :
+                                    CCD, CPRU, HTR, PWR, STAT, TCV, PM
+        filter (Optional[dict]):    Extra filters of the form:
+                                    `{fieldname1: [min, max], ...}`
+                                    (Default: None)
+
+    Returns:
+        DataFrame:      The payload data.
+    """
+
+    session = boto3.session.Session(profile_name="mats")
+    credentials = session.get_credentials()
+    filesystem = f'ops-payload-level0-v{version}'
+    file = f"{filesystem}/{data_type}"
+
+    s3 = fs.S3FileSystem(
+        secret_key=credentials.secret_key,
+        access_key=credentials.access_key,
+        region=session.region_name,
+        session_token=credentials.token)
+    
+    if start_date.tzinfo == None:
+        start_date = start_date.replace(tzinfo=timezone.utc)
+    if end_date.tzinfo == None:
+        end_date = end_date.replace(tzinfo=timezone.utc)
+
+    dataset = ds.dataset(
+        file,
+        filesystem=s3,
+        )
+    filterlist = (
+        (ds.field("TMHeaderTime") >= pd.Timestamp(start_date))
+        & (ds.field("TMHeaderTime") <= pd.Timestamp(end_date))
+    )
+    if filter != None:
+        for variable in filter.keys():
+            filterlist &= (
+                (ds.field(variable) >= filter[variable][0])
+                & (ds.field(variable) <= filter[variable][1])
+            )
+
+    table = dataset.to_table(filter=filterlist)
+    dataframe = table.to_pandas()
+    dataframe.reset_index(inplace=True)
+    dataframe.set_index('TMHeaderTime',inplace=True)
+    dataframe.sort_index(inplace=True)
+    dataframe.reset_index(inplace=True)
+
+    if len(dataframe) == 0:
+        raise Warning('Dataset is empty check version or time interval')
+
+    return dataframe
