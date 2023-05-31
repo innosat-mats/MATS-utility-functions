@@ -82,17 +82,20 @@ def list_to_ndarray(l1b_data_row):
     return np.stack(l1b_data_row.ImageCalibrated) 
 
 
-def read_MATS_payload_data(start_date,end_date,data_type='HTR',filter=None,version='0.3',drop_col=[]):
+def read_MATS_payload_data(start_date,end_date,data_type='CCD',filter=None,version='0.3',columns=None):
     """Reads the payload data between the specified times. 
 
     Args:
         start (datetime):           Read payload data from this time (inclusive).
         stop (datetime):            Read payload data up to this time (inclusive).
-        data_type (str):            key describing the different types of data :
+        data_type (Optional str):            key describing the different types of data :
                                     CCD, CPRU, HTR, PWR, STAT, TCV, PM
+                                    (Defaults: 'CCD')
         filter (Optional[dict]):    Extra filters of the form:
                                     `{fieldname1: [min, max], ...}`
                                     (Default: None)
+        columns (Optional[str]):    List of columns to be imported in the dataframe
+                                    (Default: None ie all the columns are imported)
 
     Returns:
         DataFrame:      The payload data.
@@ -161,7 +164,7 @@ def read_MATS_payload_data(start_date,end_date,data_type='HTR',filter=None,versi
                 & (ds.field(variable) <= filter[variable][1])
             )
 
-    table = dataset.to_table(filter=partition_filter & filterlist)
+    table = dataset.to_table(filter=partition_filter & filterlist,columns=columns)
     dataframe = table.to_pandas()
     dataframe.reset_index(inplace=True)
     dataframe.set_index('TMHeaderTime',inplace=True)
