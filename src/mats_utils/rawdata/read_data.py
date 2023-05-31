@@ -1,10 +1,11 @@
 from pyarrow import fs
 import pyarrow.dataset as ds
 import boto3
-from datetime import timezone
+from datetime import timezone, timedelta
 from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows
 import numpy as np
 import pandas as pd
+import pyarrow as pa  # type: ignore
 #%matplotlib widget
 
 
@@ -81,7 +82,7 @@ def list_to_ndarray(l1b_data_row):
     return np.stack(l1b_data_row.ImageCalibrated) 
 
 
-def read_MATS_payload_data(start_date,end_date,data_type='HTR',filter=None,version='0.3'):
+def read_MATS_payload_data(start_date,end_date,data_type='HTR',filter=None,version='0.3',drop_col=[]):
     """Reads the payload data between the specified times. 
 
     Args:
@@ -113,10 +114,42 @@ def read_MATS_payload_data(start_date,end_date,data_type='HTR',filter=None,versi
     if end_date.tzinfo == None:
         end_date = end_date.replace(tzinfo=timezone.utc)
 
+    partitioning = ds.partitioning(
+        schema=pa.schema(
+            [
+                ("year", pa.int16()),
+                ("month", pa.int8()),
+                ("day", pa.int8()),
+            ]
+        ),
+    )
+
     dataset = ds.dataset(
         file,
         filesystem=s3,
+        partitioning=partitioning,
         )
+    
+
+    start_with_margin =  start_date - timedelta(hours=1)
+    stop_with_margin = end_date + timedelta(hours=1)
+
+    partition_filter = (
+        ds.field("year") * 1000000
+        + ds.field("month") * 10000
+        + ds.field("day") * 100
+        >= start_with_margin.year * 1000000
+        + start_with_margin.month * 10000
+        + start_with_margin.day * 100
+    ) & (
+        ds.field("year") * 1000000
+        + ds.field("month") * 10000
+        + ds.field("day") * 100
+        <= stop_with_margin.year * 1000000
+        + stop_with_margin.month * 10000
+        + stop_with_margin.day * 100
+    )
+    
     filterlist = (
         (ds.field("TMHeaderTime") >= pd.Timestamp(start_date))
         & (ds.field("TMHeaderTime") <= pd.Timestamp(end_date))
@@ -128,7 +161,7 @@ def read_MATS_payload_data(start_date,end_date,data_type='HTR',filter=None,versi
                 & (ds.field(variable) <= filter[variable][1])
             )
 
-    table = dataset.to_table(filter=filterlist)
+    table = dataset.to_table(filter=partition_filter & filterlist)
     dataframe = table.to_pandas()
     dataframe.reset_index(inplace=True)
     dataframe.set_index('TMHeaderTime',inplace=True)
