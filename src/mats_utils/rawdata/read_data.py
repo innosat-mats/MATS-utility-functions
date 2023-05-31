@@ -134,8 +134,8 @@ def read_MATS_payload_data(start_date,end_date,data_type='CCD',filter=None,versi
         )
     
 
-    start_with_margin =  start_date - timedelta(hours=1)
-    stop_with_margin = end_date + timedelta(hours=1)
+    start_with_margin =  start_date - timedelta(days=1)
+    stop_with_margin = end_date + timedelta(days=1)
 
     partition_filter = (
         ds.field("year") * 1000000
