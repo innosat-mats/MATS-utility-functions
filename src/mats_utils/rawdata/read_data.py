@@ -164,6 +164,8 @@ def read_MATS_payload_data(start_date,end_date,data_type='CCD',filter=None,versi
                 & (ds.field(variable) <= filter[variable][1])
             )
 
+    if columns != None and 'TMHeaderTime' not in columns: # the column TMHeaderTime has to be always selected as it is set as index
+        columns.append('TMHeaderTime')
     table = dataset.to_table(filter=partition_filter & filterlist,columns=columns)
     dataframe = table.to_pandas()
     dataframe.reset_index(inplace=True)
