@@ -3,7 +3,7 @@ import numpy as np
 from mats_utils.geolocation.coordinates import fast_heights
 
 
-def flatten_altitudes_on_image(image, ths, fixalt):
+def rows_to_altitudes_on_image(image, ths, fixalt):
     """Restructures image so so that altitude of each row is constant (according to ths)
 
     Parameters
@@ -36,7 +36,7 @@ def flatten_altitudes_on_image(image, ths, fixalt):
     return image_fixalt, fixalt
     
     
-def flatten_altitudes(CCDitem, fixaltvec=[61000, 107000, 1000], imagefield='IMAGE'):
+def rows_to_altitudes(CCDitem, fixaltvec=[61000, 107000, 1000], imagefield='IMAGE'):
     """Funtion that flattend altitudes in a CCDitem
 
     Parameters
@@ -51,7 +51,7 @@ def flatten_altitudes(CCDitem, fixaltvec=[61000, 107000, 1000], imagefield='IMAG
    
     #ths=heights(CCDitem) 
     ths=fast_heights(CCDitem,nx=10,ny=10)
-    image_fixalt, _ =flatten_altitudes_on_image(CCDitem[imagefield], ths, fixalt=fixaltvec)
+    image_fixalt, _ =rows_to_altitudes_on_image(CCDitem[imagefield], ths, fixalt=fixaltvec)
 
     return image_fixalt
     
