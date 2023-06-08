@@ -7,7 +7,7 @@ import numpy as np
 #%matplotlib widget
 
 
-def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
+def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=False):
     session = boto3.session.Session(profile_name="mats")
     credentials = session.get_credentials()
 
@@ -31,7 +31,10 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
         filesystem = f"ops-payload-level{level}-v{version}" + "/CCD"
     else:
         filesystem = f"ops-payload-level{level}-v{version}"
+    if dev:
+        filesystem = f"dev-payload-level{level}"
     
+    print(filesystem)
     ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
 
     if (level == '1a') and (float(version) <= 0.5):
