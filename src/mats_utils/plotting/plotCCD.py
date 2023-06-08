@@ -761,10 +761,10 @@ def all_channels_plot(CCD_dataframe, outdir, nstd=2, cmap='viridis',
         
         img_count = img_count + 1
 
-        if (img_count <= 5) and (CCD['CCDSEL'] == 1):
+        if (img_count <= 9) and (CCD['CCDSEL'] == 1):
             draw_map = False # cartopy error when looping
 
-        if img_count > 5:
+        if img_count > 9:
 
             if not num_name:
                 save_figure(outpath, CCD, format, filename=str(index))
