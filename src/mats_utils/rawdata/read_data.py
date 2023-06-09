@@ -42,8 +42,7 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=
     
     if level == '1a':
         convert_image_data(ccd_data)
-    
-    remove_faulty_rows(ccd_data)
+        remove_faulty_rows(ccd_data)    
 
     if len(ccd_data) == 0:
         raise Warning('Dataset is empty check version or time interval')
