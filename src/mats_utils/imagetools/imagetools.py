@@ -45,7 +45,7 @@ def shift_image(CCDitem, image=None):
 
     x_pos,y_pos = get_shift(CCDitem)
 
-    x_maximum=75 #156 This is the maximum shift, silly that it is hardcoded
+    x_maximum=84 #This is the maximum shift see get_shift, silly that it is hardcoded
     y_maximum=192
     x_rel=x_maximum-x_pos
     y_rel=y_maximum-y_pos

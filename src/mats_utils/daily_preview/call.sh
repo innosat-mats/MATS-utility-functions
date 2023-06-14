@@ -37,7 +37,7 @@ count=$(($count-1))
 for folder in ${MATS_dir}'animations/daily/'$dates/*/;
 do
     # image offset 
-    start=4
+    start=8
 
     # for output name
     folder_name=${folder#*$dates/}
