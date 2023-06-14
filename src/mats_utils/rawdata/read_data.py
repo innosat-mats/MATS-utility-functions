@@ -25,31 +25,45 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=
     if end_date.tzinfo == None:
         end_date = end_date.replace(tzinfo=timezone.utc)
 
-    if level == '1b' and version == "0.4":
-        filesystem = f"ops-payload-level{level}-v{version}" + "/ops-payload-level1a-v0.5"
-    elif level == '1b' and version == "0.3":
-        filesystem = f"ops-payload-level{level}-v{version}" + "/ops-payload-level1a-v0.4"
-    elif level == '0':
-        filesystem = f"ops-payload-level{level}-v{version}" + "/CCD"
+    level_list = level.split("/",1)
+    main_level = level_list[0]
+    subdir = None
+    if len(level_list)>1:
+        subdir = level_list[1]
+    if main_level == '1b' and version == "0.4":
+        filesystem = f"ops-payload-level{main_level}-v{version}" + "/ops-payload-level1a-v0.5"
+    elif main_level == '1b' and version == "0.3":
+        filesystem = f"ops-payload-level{main_level}-v{version}" + "/ops-payload-level1a-v0.4"
+    elif main_level == '0':
+        if len(level_list) == 1:
+            raise ValueError("For level 0 subdir must be given")
+        
+        filesystem = f"ops-payload-level{main_level}-v{version}" + "/" + subdir
     else:
-        filesystem = f"ops-payload-level{level}-v{version}"
+        filesystem = f"ops-payload-level{main_level}-v{version}"
     if dev:
-        filesystem = f"dev-payload-level{level}"
+        filesystem = f"dev-payload-level{main_level}"
     
     print(filesystem)
-    ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
+    if (main_level == '1b') or (main_level == '1a') or (main_level == '0' and subdir == 'CCD') 
+        try:
+            ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
+        except:
+            raise ValueError("something wrong with dataset, probably it does not exists")
+    else:
+        raise NotImplementedError("cannot read non-ccd data")
 
-    if (level == '1a') and (float(version) <= 0.5):
+    if (main_level == '1a') and (float(version) <= 0.5):
         add_ccd_item_attributes(ccd_data)
     
-    if level == '1a':
+    if main_level == '1a':
         convert_image_data(ccd_data)
         remove_faulty_rows(ccd_data)    
 
     if len(ccd_data) == 0:
         raise Warning('Dataset is empty check version or time interval')
 
-    if level == '1b':
+    if main_level == '1b':
         ccd_data["ImageCalibrated"] = ccd_data.apply(list_to_ndarray, axis=1)
 
     return (ccd_data)
