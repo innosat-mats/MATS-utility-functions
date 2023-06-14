@@ -45,7 +45,7 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=
         filesystem = f"dev-payload-level{main_level}"
     
     print(filesystem)
-    if (main_level == '1b') or (main_level == '1a') or (main_level == '0' and subdir == 'CCD') 
+    if (main_level == '1b') or (main_level == '1a') or (main_level == '0' and subdir == 'CCD'): 
         try:
             ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
         except:
