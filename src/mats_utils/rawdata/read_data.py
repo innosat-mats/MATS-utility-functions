@@ -2,14 +2,14 @@ from pyarrow import fs
 import pyarrow.dataset as ds
 import boto3
 from datetime import timezone, timedelta
-from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows
+from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows,convert_image_data
 import numpy as np
 import pandas as pd
 import pyarrow as pa  # type: ignore
 #%matplotlib widget
 
 
-def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
+def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=False):
     session = boto3.session.Session(profile_name="mats")
     credentials = session.get_credentials()
 
@@ -33,12 +33,18 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a'):
         filesystem = f"ops-payload-level{level}-v{version}" + "/CCD"
     else:
         filesystem = f"ops-payload-level{level}-v{version}"
+    if dev:
+        filesystem = f"dev-payload-level{level}"
     
+    print(filesystem)
     ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
 
-    if level == '1a':
+    if (level == '1a') and (float(version) <= 0.5):
         add_ccd_item_attributes(ccd_data)
-        remove_faulty_rows(ccd_data)
+    
+    if level == '1a':
+        convert_image_data(ccd_data)
+        remove_faulty_rows(ccd_data)    
 
     if len(ccd_data) == 0:
         raise Warning('Dataset is empty check version or time interval')
