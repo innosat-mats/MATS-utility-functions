@@ -56,7 +56,7 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=
     if (main_level == '1a') and (float(version) <= 0.5):
         add_ccd_item_attributes(ccd_data)
     
-    if main_level == '1a':
+    if main_level == '1a' or (main_level == '0' and subdir == 'CCD'):
         convert_image_data(ccd_data)
         remove_faulty_rows(ccd_data)    
 
