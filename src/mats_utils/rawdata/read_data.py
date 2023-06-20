@@ -2,7 +2,7 @@ from pyarrow import fs
 import pyarrow.dataset as ds
 import boto3
 from datetime import timezone, timedelta
-from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows,convert_image_data
+from mats_l1_processing.read_parquet_functions import read_ccd_data_in_interval,add_ccd_item_attributes,remove_faulty_rows,convert_image_data,read_instrument_data_in_interval
 import numpy as np
 import pandas as pd
 import pyarrow as pa  # type: ignore
@@ -47,26 +47,29 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=
     print(filesystem)
     if (main_level == '1b') or (main_level == '1a') or (main_level == '0' and subdir == 'CCD'): 
         try:
-            ccd_data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
+            data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
         except:
             raise ValueError("something wrong with dataset, probably it does not exists")
     else:
-        raise NotImplementedError("cannot read non-ccd data")
+        try:
+            data = read_instrument_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)
+        except:
+            raise ValueError("something wrong with dataset, probably it does not exists")
 
     if (main_level == '1a') and (float(version) <= 0.5):
-        add_ccd_item_attributes(ccd_data)
+        add_ccd_item_attributes(data)
     
     if main_level == '1a' or (main_level == '0' and subdir == 'CCD'):
-        convert_image_data(ccd_data)
-        remove_faulty_rows(ccd_data)    
+        convert_image_data(data)
+        remove_faulty_rows(data)    
 
-    if len(ccd_data) == 0:
+    if len(data) == 0:
         raise Warning('Dataset is empty check version or time interval')
 
     if main_level == '1b':
-        ccd_data["ImageCalibrated"] = ccd_data.apply(list_to_ndarray, axis=1)
+        data["ImageCalibrated"] = data.apply(list_to_ndarray, axis=1)
 
-    return (ccd_data)
+    return (data)
 
 def read_MATS_PM_data(start_date,end_date,filter=None,version='0.2',level='1a'):
     session = boto3.session.Session(profile_name="mats")
