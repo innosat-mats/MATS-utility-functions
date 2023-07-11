@@ -11,7 +11,7 @@ This is more or less a duplicate of read_and_calibrate_all_files_in_directory bu
 
 
 import matplotlib.pyplot as plt
-from mats_l1_processing.experimental_utils import plot_CCDimage
+from database_generation.experimental_utils import plot_CCDimage
 
     
 def select_CCDitems(CCDitems, key, value): 
