@@ -67,10 +67,16 @@ def meanquaternion(start_date: datetime, deltat: timedelta):
     return np.vstack(df.afsAttitudeState).mean(axis=0)
 
 
-def findtangent(t, pos, FOV):
-    res = minimize_scalar(funheight, args=(t, pos, FOV), bracket=(1e5, 3e5))
+def findtangent(t, pos, FOV, bracket=(1e5, 3e5)):
+    res = minimize_scalar(funheight, args=(t, pos, FOV), bracket=bracket)
     return res
 
+def targetheight(s,t,pos,FOV,height):
+    return((funheight(s,t,pos,FOV)-height)**2)
+
+def findheight(t, pos, FOV, height,  bracket=(1e5, 3e5)):
+    res = minimize_scalar(targetheight, args=(t, pos, FOV, height), bracket= bracket)
+    return res
 
 def col_heights(ccditem, x, nheights=None, spline=False, splineTPpos=False):
     if nheights == None:
