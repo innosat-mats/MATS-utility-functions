@@ -91,7 +91,17 @@ def read_MATS_PM_data(start_date,end_date,filter=None,version='0.2',level='1a'):
     table = dataset.to_table(filter=(ds.field('PMTime') > start_date) 
                            & (ds.field('PMTime') < end_date) )
 
-    df = table.to_pandas().reset_index().set_index('TMHeaderTime')
+    df = table.to_pandas()
+    if df.index.name == 'PMTime':
+        df.reset_index(inplace=True)
+        df.set_index('TMHeaderTime',inplace=True)
+        df.sort_index(inplace=True)
+        df.reset_index(inplace=True)
+    else:
+        df.reset_index(drop=True,inplace=True)
+        df.set_index('TMHeaderTime',inplace=True)
+        df.sort_index(inplace=True)
+        df.reset_index(inplace=True)
 
     if len(df) == 0:
         raise Warning('Dataset is empty check version or time interval')

@@ -12,9 +12,9 @@ def bin_image(image,nrbin,ncolbin):
         (np.array): binned image
 
     """
-    nrow,ncol = image.shape()
-    nrow_binned = np.floor(nrow/nrbin)
-    ncol_binned = np.floor(ncol/ncolbin)
+    nrow,ncol = image.shape
+    nrow_binned = int(np.floor(nrow/nrbin))
+    ncol_binned = int(np.floor(ncol/ncolbin))
 
     colbin = np.zeros([nrow,ncol_binned])
           
