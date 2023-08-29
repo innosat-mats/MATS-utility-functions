@@ -50,7 +50,7 @@ def rows_to_altitudes(CCDitem, fixaltvec=[61000, 107000, 1000], imagefield='IMAG
     """
    
     #ths=heights(CCDitem) 
-    ths=fast_heights(CCDitem,nx=10,ny=10)
+    ths=fast_heights(CCDitem,nx=4,ny=4)
     image_fixalt, _ =rows_to_altitudes_on_image(CCDitem[imagefield], ths, fixalt=fixaltvec)
 
     return image_fixalt
