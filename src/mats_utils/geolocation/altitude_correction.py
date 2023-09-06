@@ -36,21 +36,27 @@ def rows_to_altitudes_on_image(image, ths, fixalt):
     return image_fixalt, fixalt
     
     
-def rows_to_altitudes(CCDitem, fixaltvec=[61000, 107000, 1000], imagefield='IMAGE'):
+def rows_to_altitudes(CCDitem, fixaltvec=[61000, 107000, 1000], imagefield='IMAGE', nx=4, ny=4):
     """Funtion that flattend altitudes in a CCDitem
 
     Parameters
     ----------
     CCDitem: dataframe Series
         once CCDitem, ie a row in a CCDitems dataframe
-
     fixalt: 1Darray
-        Array specifying altitudes    
+        Array specifying altitudes
+    imagefield: str
+        name of image variable, default='IMAGE'
+    nx: int
+        number of x pixels
+    ny: int
+        number of y pixels
+        
         
     """
    
     #ths=heights(CCDitem) 
-    ths=fast_heights(CCDitem,nx=10,ny=10)
+    ths=fast_heights(CCDitem,nx,ny)
     image_fixalt, _ =rows_to_altitudes_on_image(CCDitem[imagefield], ths, fixalt=fixaltvec)
 
     return image_fixalt
