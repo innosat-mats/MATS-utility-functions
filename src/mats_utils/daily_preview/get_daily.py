@@ -77,7 +77,7 @@ parser.add_argument('--daily', type=bool, default=True,
                     help='For generating daily animations every day')
 parser.add_argument('--start_date', type=str, default=None,
                     help='If not daily: animate from YYYY-MM-DD')
-parser.add_argument('--end_date', type=str, default=None
+parser.add_argument('--end_date', type=str, default=None,
                     help='If not daily: animate until YYYY-MM-DD')
 
 args = parser.parse_args()
