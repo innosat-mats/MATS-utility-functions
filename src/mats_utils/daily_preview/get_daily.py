@@ -6,23 +6,31 @@ from mats_utils.plotting.plotCCD import all_channels_plot
 import numpy as np
 import sys
 import multiprocessing
+from mats_l1_processing.read_parquet_functions import convert_image_data
 
-def generate_day_interval(snippet=False):
+def generate_day_interval(snippet=False, daily=True, start_date=None, end_date=None):
     # generates start time
     # three days ago
     # end time: two days ago
 
-    today = date.today()
-    start_day = today - timedelta(days=3)
-    end_day = today - timedelta(days=2)
+    if daily:
+        today = date.today()
+        start_day = today - timedelta(days=3)
+        end_day = today - timedelta(days=2)
 
-    start_time = DT.datetime(start_day.year,
-                             start_day.month,
-                             start_day.day,
-                             0, 0, 0)
+        start_time = DT.datetime(start_day.year,
+                                start_day.month,
+                                start_day.day,
+                                0, 0, 0)
+    
+    else:
+        date_format = '%Y-%m-%d'
+        start_day = DT.strptime(start_date,date_format)
+        end_day = DT.strptime(start_date,date_format)
 
     if snippet:
         stop_time = start_time + timedelta(minutes=20)
+
     else:
         stop_time = DT.datetime(end_day.year,
                                 end_day.month,
@@ -65,6 +73,12 @@ parser.add_argument('--version', type=str, default='0.4',
                     help='specifies version of data')
 parser.add_argument('--snippet', action="store_true", default=False,
                     help='If supplied; short interval for debugging')
+parser.add_argument('--daily', type=bool, default=True,
+                    help='For generating daily animations every day')
+parser.add_argument('--start_date', type=str, default=None,
+                    help='If not daily: animate from YYYY-MM-DD')
+parser.add_argument('--end_date', type=str, default=None
+                    help='If not daily: animate until YYYY-MM-DD')
 
 args = parser.parse_args()
 
@@ -72,8 +86,11 @@ level = args.level
 version = args.version
 outdir = args.outdir
 snippet = args.snippet
+daily = args.daily
+start_date = args.start_date
+end_date = args.end_date
 
-start_time, stop_time = generate_day_interval(snippet=snippet)
+start_time, stop_time = generate_day_interval(snippet=snippet, daily=daily, start_date, end_date)
 
 # get measurements
 CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
