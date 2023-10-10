@@ -90,7 +90,7 @@ daily = args.daily
 start_date = args.start_date
 end_date = args.end_date
 
-start_time, stop_time = generate_day_interval(snippet=snippet, daily=daily, start_date, end_date)
+start_time, stop_time = generate_day_interval(snippet, daily, start_date, end_date)
 
 # get measurements
 CCDitems = read_MATS_data(start_time, stop_time, level=level, version=version)
