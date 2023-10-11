@@ -25,8 +25,8 @@ def generate_day_interval(snippet=False, daily=True, start_date=None, end_date=N
     
     else:
         date_format = '%Y-%m-%d'
-        start_day = DT.strptime(start_date,date_format)
-        end_day = DT.strptime(start_date,date_format)
+        start_time = DT.datetime.strptime(start_date,date_format)
+        end_day = DT.datetime.strptime(end_date,date_format)
 
     if snippet:
         stop_time = start_time + timedelta(minutes=20)
@@ -73,7 +73,7 @@ parser.add_argument('--version', type=str, default='0.4',
                     help='specifies version of data')
 parser.add_argument('--snippet', action="store_true", default=False,
                     help='If supplied; short interval for debugging')
-parser.add_argument('--daily', type=bool, default=True,
+parser.add_argument('--not_daily', action="store_false", default=True,
                     help='For generating daily animations every day')
 parser.add_argument('--start_date', type=str, default=None,
                     help='If not daily: animate from YYYY-MM-DD')
@@ -86,7 +86,7 @@ level = args.level
 version = args.version
 outdir = args.outdir
 snippet = args.snippet
-daily = args.daily
+daily = args.not_daily
 start_date = args.start_date
 end_date = args.end_date
 
