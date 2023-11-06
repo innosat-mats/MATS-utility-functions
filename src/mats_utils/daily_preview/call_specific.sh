@@ -18,9 +18,9 @@ snippet="True"
 dates=$(date -d '2023-02-08' +'%Y_%m_%d')
 #folder_str='2023-02-08'
 
-outdir='/media/waves/AVAGO/data/MATS/animations/specific/'
+outdir_main='/media/waves/AVAGO/data/MATS/animations/specific/'
 
-for day_str in 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+for day_str in 15 16 17 18 19 20 21 22 23 24 25 26 27 28
 do
     # start end
     end_day_str=$((day_str+1))
@@ -28,7 +28,8 @@ do
     start_date="2023-02-${day_str}"
     end_date="2023-02-${end_day_str}"
 
-    folder_str=start_date
+    folder_str=$start_date
+    outdir="${outdir_main}/${folder_str}/"
 
     # initiate
     echo -e "DAILY ANIMATION (${start_date} to ${end_date}): Initiating ..."
