@@ -12,7 +12,7 @@ MATS_dir='/home/waves/projects/MATS/'
 level="1b"
 version="0.5"
 
-outdir_main='/media/waves/AVAGO/data/MATS/animations/specific/'
+outdir_main='/media/waves/AVAGO/data/MATS/animations/specific'
 
 for day_str in 11
 do
