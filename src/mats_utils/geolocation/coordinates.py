@@ -75,7 +75,7 @@ def targetheight(s,t,pos,FOV,height):
     return((funheight(s,t,pos,FOV)-height)**2)
 
 def findheight(t, pos, FOV, height,  bracket=(1e5, 3e5)):
-    res = minimize_scalar(targetheight, args=(t, pos, FOV, height), bracket= bracket)
+    res = minimize_scalar(targetheight, args=(t, pos, FOV, height), bounds= bracket)
     return res
 
 def col_heights(ccditem, x, nheights=None, spline=False, splineTPpos=False):
