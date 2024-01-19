@@ -12,12 +12,19 @@ level="1b"
 version="0.4"
 snippet="True"
 
-# output
-dates=$(date -d '-0 days' +'%Y_%m_%d')
+# output mainly for naming
+dates=$(date -d '2023-02-08' +'%Y_%m_%d')
 outdir=${MATS_dir}'animations/daily/'$dates'/'
 
+# measurement date for naming
+measurements_date="$(date -d '2023-02-08' +'%Y-%m-%d')"
+
+# output
+#dates=$(date -d '-0 days' +'%Y_%m_%d')
+#outdir=${MATS_dir}'animations/daily/'$dates'/'
+
 # measurement date
-measurements_date="$(date -d '-3 days' +'%Y-%m-%d')"
+#measurements_date="$(date -d '-3 days' +'%Y-%m-%d')"
 
 # initiate
 echo -e "DAILY ANIMATION (${dates}): Initiating ..."
