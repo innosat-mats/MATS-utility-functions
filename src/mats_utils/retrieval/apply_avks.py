@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
-from retrieval.averaging_kernels import apply_3d_kernel
+from averaging_kernels import apply_3d_kernel
 import time
 import cProfile
 import io
@@ -15,7 +15,8 @@ from halo import Halo
 # file information
 main_path = "/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_orbit_data/no_mid_track/"
 orbit_file = "mats_orbit_12t_D5844_97.6_ls0_0600UTZ01JAN2016_spline.nc"
-out_path = "/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_avg_orbit_data/patches/"
+#out_path = "/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_avg_orbit_data/patches/"
+out_path= "/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_avg_ref_orbit_data/patches/"
 
 # parallel processing 
 parallel = True
@@ -28,6 +29,9 @@ save_npy = False
 
 # fwhm (km)
 fwhm_x, fwhm_y, fwhm_z = 100, 20, 1
+
+# Variable to apply AVK to
+avk_var="TEMP_RESIDUAL"
 
 # along-track points
 nx = 500 # pts
@@ -57,7 +61,7 @@ for n in range(1+n_offset, npatches):
     # %% READ DATA
     print(f'\n---- initiating patch {n}; (x0, x1) = ({x0}, {x1}) ----')
     sliced_data = data.isel(time=0, x=slice(x0, x1), x_tp=slice(x0, x1))
-    TEMP = sliced_data.TEMP
+    TEMP = sliced_data[avk_var]
 
     # %% APPLY TO XN CROSS SECTIONS
     TEMP = TEMP.T.values
@@ -91,11 +95,11 @@ for n in range(1+n_offset, npatches):
             s = io.StringIO()
             ps = pstats.Stats(pr, stream=s).sort_stats('tottime')
             ps.print_stats()
-            with open("/home/waves/projects/instrument_analysis/UtilityFunctions/src/retrieval/logs/profile.txt", 'w+') as f:
+            with open("/home/waves/projects/MATS/MATS-utility-functions/src/mats_utils/retrieval/logs/profile.txt", 'w+') as f:
                 f.write(s.getvalue())
 
         # save nx - time data
-        with open("/home/waves/projects/instrument_analysis/UtilityFunctions/src/retrieval/logs/time.txt", "ab") as f:
+        with open("/home/waves/projects/MATS/MATS-utility-functions/src/mats_utils/retrieval/logs/time.txt", "ab") as f:
             np.savetxt(f, np.c_[nx, elapsed])
 
     # convert from list to array
@@ -104,7 +108,7 @@ for n in range(1+n_offset, npatches):
     # save data
     spinner_save.start()
 
-    sliced_data.TEMP.values = averaged_data.T
+    sliced_data[avk_var].values = averaged_data.T
     sliced_data.load().to_netcdf(path=(out_path+orbit_file[:-3] +
                         f'_avg_x{fwhm_x}y{fwhm_y}z{fwhm_z}_nx{nx}_x0_{x0}_x1_{x1}.nc'),
                         mode="w", format="NETCDF4_CLASSIC")
