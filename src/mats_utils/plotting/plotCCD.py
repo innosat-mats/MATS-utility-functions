@@ -328,7 +328,7 @@ def generate_histogram(ax, image, ranges, nstd, nbins=None):
 def plot_image(CCD, ax=None, fig=None, outpath=None,
                nstd=2, cmap='inferno', ranges=None,
                optimal_range=False, format='png', save=True,
-               fontsize=10, TPheights=True):
+               fontsize=10, TPheights=True, image_field='None'):
     """
     Function to plot single MATS image
 
@@ -354,6 +354,8 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
         if image to be included in another fig set to False
     fontsize : int
         determines font size 
+    image_field : str
+        field name of image to be plotted
 
     """
 
@@ -365,7 +367,10 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     lvl = check_level(CCD)
 
     # save parameters for plot
-    image = CCD[image_var[lvl]]
+    if image_field != 'None': #Add the possibility to plot for instance semi-calibrated images
+        image = CCD[image_field]
+    else:
+        image = CCD[image_var[lvl]]
     if lvl == 'L1b':
         image = np.stack(image)
 
