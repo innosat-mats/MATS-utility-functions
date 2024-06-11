@@ -9,7 +9,7 @@ import pyarrow as pa  # type: ignore
 #%matplotlib widget
 
 
-def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=False):
+def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=False, pritfilesys=True):
     session = boto3.session.Session(profile_name="mats")
     credentials = session.get_credentials()
 
@@ -44,7 +44,7 @@ def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=
     if dev:
         filesystem = f"dev-payload-level{main_level}"
     
-    print(filesystem)
+    if pritfilesys:  print(filesystem)
     if (main_level == '1b') or (main_level == '1a') or (main_level == '0' and subdir == 'CCD'): 
         try:
             data = read_ccd_data_in_interval(start_date, end_date, filesystem, s3,filter=filter)

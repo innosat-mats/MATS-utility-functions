@@ -32,25 +32,32 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument, debug_ou
         else:
             (
                 image_lsb, 
+                image_se_corrected, 
+                image_hot_pixel_corrected, 
                 image_bias_sub, 
+                image_linear, 
                 image_desmeared, 
                 image_dark_sub, 
-                image_calib_nonflipped, 
-                image_calibrated_flipped,
-                image_calibrated,
-                errors,
-
-            ) = L1_calibrate.L1_calibrate(ccd, instrument, force_table=False)
+                image_flatfielded, 
+                image_flipped, 
+                image_calibrated, 
+                errors
+            ) = L1_calibrate.L1_calibrate(ccd, instrument, force_table=False, return_steps=True)
             ccd["ImageCalibrated"] = image_calibrated
             ccd["CalibrationErrors"] = errors
 
             if debug_outputs:
                 ccd["image_lsb"] = image_lsb
+                ccd["image_se_corrected"] = image_se_corrected
+                ccd["image_hot_pixel_corrected"] = image_hot_pixel_corrected
                 ccd["image_bias_sub"] = image_bias_sub
+                ccd["image_linear"] = image_linear
                 ccd["image_desmeared"] = image_desmeared
                 ccd["image_dark_sub"] = image_dark_sub
-                ccd["image_calib_nonflipped"] = image_calib_nonflipped
-                ccd["image_calibrated_flipped"] = image_calibrated_flipped
+                ccd["image_flatfielded"] = image_flatfielded
+                ccd["image_flipped"] = image_flipped
+                
+
 
 
 
@@ -76,16 +83,19 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument, debug_ou
                 "ImageCalibrated",
                 "CalibrationErrors",
                 "qprime",
-                "channel",
                 "flipped",
                 "temperature",
                 "temperature_HTR",
                 "temperature_ADC",
                 "image_lsb",
+                "image_se_corrected",
+                "image_hot_pixel_corrected",
                 "image_bias_sub",
+                "image_linear",
                 "image_desmeared",
                 "image_dark_sub",
-                "image_calib_nonflipped",
+                "image_flatfielded",
+                "image_flipped",
             ],
         )   
 
