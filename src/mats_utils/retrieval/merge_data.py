@@ -11,7 +11,9 @@ end = int(nx - overlap/2)
 
 # folder containing patches to merge
 dir = '/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_avg_orbit_data/patches/'
+dir = '/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_avg_ref_orbit_data/patches/'
 outdir = '/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_avg_orbit_data/'
+outdir = '/home/waves/projects/hiamcm-juwave/data/fsps/test_orbits_atm/MATS_avg_ref_orbit_data/'
 
 # spinners 
 list_spin = Halo(text='loading list of files...', spinner='dots')
