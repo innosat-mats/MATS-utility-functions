@@ -20,7 +20,6 @@ import pyarrow as pa  # type: ignore
 import pyarrow.dataset as ds  # type: ignore
 from pandas import DataFrame, Timestamp  # type: ignore
 from skyfield import api as sfapi
-from scipy.interpolate import RegularGridInterpolator
 import math
 
 
@@ -92,7 +91,7 @@ def make_ref_grid(df, sample_factor=0.5, ext_factor=1.1):
     return deg_map, grids
 
 
-def to_ref(df, chn, ref_map, time_ref_chn=None):
+def to_ref(df, chn, ref_map, time_corrections=None):
     """
     Reinterpolates MATS images onto reference grid.
 
@@ -100,7 +99,11 @@ def to_ref(df, chn, ref_map, time_ref_chn=None):
         df - Pandas data frame;
         chn - string, name of the channel to reinterpolate, e.g. "IR1".
         ref_map - ndarray, 2-D Euler angle reference grid. Shape is (num. cols, num. rows, 2).
-        time_ref_chn - bool, not implemented yet.
+        ref_chn - str, specify the reference channel, its effects are described below.
+        max_time_shift - float. Image will be discarded if there is no ref_chn image within
+            the specified amount of seconds from it.
+        time_shift_compensation - bool. If true, compensates for change in sat. direction between
+            acquisition of each image and the correspondinmg ref_chn image (not implemented yet!).
     Returns:
         ndarray, images on reference grid.
     """
@@ -108,6 +111,16 @@ def to_ref(df, chn, ref_map, time_ref_chn=None):
     # Select images for the specified channel
     CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
     sel = df[df['CCDSEL'] == CCDSEL[chn]]
+    #if (ref_chn is not None) and (ref_chn != chn):
+    #    ref_time0 = df[df['CCDSEL'] == CCDSEL[ref_chn]].iloc[0]["EXPDate"]
+    #    times, ref_times = [(df[df['CCDSEL'] == CCDSEL[ch]]["EXPDate"] - ref_time0).values.astype(int) * 1e-9
+    #                        for ch in [chn, ref_chn]]
+    #    idxs = [np.argmin(np.abs(times - rtime)) for rtime in ref_times]
+    #    idxs = [idx for i, idx in enumerate(idxs) if np.abs(times[idx] - ref_times[i]) < max_time_shift]
+    #    new_sel = DataFrame().reindex_like(sel)
+    #    for i, idx in enumerate(idxs):
+    #        new_sel.iloc[i] = sel.iloc[idx]
+    #    sel = new_sel
     numimg = len(sel)
     assert numimg > 0
 
@@ -132,6 +145,69 @@ def to_ref(df, chn, ref_map, time_ref_chn=None):
         img = sel.iloc[k]["ImageCalibrated"].T
         interp = RegularGridInterpolator(chn_grids, img, method='cubic', bounds_error=False, fill_value=np.nan)
         res[k, :, :] = interp((ref_angs[:, :, 0], ref_angs[:, :, 1]))
+    return res
+
+
+def multi_channel_set(df, channels, ref_chn, max_time_shift=3, compensate_time_shift=False, ref_map=None,
+                      heights=False, angles=False, istep=10):
+    """
+    Creates a dataset of multiple channels on a reference grid.
+
+    Arguments:
+        df - Pandas data frame;
+        channels - list of channel names (str) to incluide, e.g. ["IR1", "IR2"].
+        ref_chn - str, name of the reference channel, e.g. "IR1".
+        ref_map - ndarray, 2-D Euler angle reference grid. Shape is (num. cols, num. rows, 2).
+                  Default is generated if None.
+        max_time_shift - float. Image will be discarded if there is no ref_chn image within
+            the specified amount of seconds from it.
+        compensate_time_shift - bool. If true, compensates for change in sat. direction between
+            acquisition of each image and the correspondinmg ref_chn image (not implemented yet!).
+        heights - bool, whether to calculate tangent point heights for reference grid.
+        angles - bool, whether to calculate angles to nadir and orbital plane for reference grid.
+        istep - speed up tangent point heigh calculation by calculating for every istep'th pixel in
+                each dimension and interpolating.
+
+    Returns:
+        dict, with results (ndarrays of shape (img. number, num. cols, num. rows)). Includes grid angles
+        ("ref_map"), interpolated images (ndarray for each channel name), and (optionally) TP heights
+        ("heights"), "nadir_angle", "orbplane_angle". Reference times for each image set ("times") are also
+        included as a 1-D ndarray.
+
+    """
+
+
+    CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
+    ref = df[df['CCDSEL'] == CCDSEL[ref_chn]]
+    ref_time0 = ref.iloc[0]["EXPDate"]
+    times = {ch: (df[df['CCDSEL'] == CCDSEL[ch]]["EXPDate"] - ref_time0).values.astype(int) * 1e-9
+             for ch in channels}
+    idxs = {ch: [] for ch in channels}
+    for i, ref_time in enumerate(times[ref_chn]):
+        if all([np.min(np.abs(times[ch] - ref_time)) < max_time_shift for ch in channels]):
+            for ch in channels:
+                idxs[ch].append(np.argmin(np.abs(times[ch] - ref_time)))
+
+    if ref_map is None:
+        ref_map = make_ref_grid(df)[0]
+
+    res = {"ref_map": ref_map, "times": ref["EXPDate"].iloc[idxs[ref_chn]]}
+    for ch in channels:
+        print(f"interpolarting {ch}...")
+        on_ref_grid = to_ref(df, ch, ref_map)
+        res[ch] = on_ref_grid[idxs[ch], :, :]
+
+    if heights:
+        print("Calculating tangent point heights ...")
+        heights = common_grid_heights(df, ref_chn, ref_map, istep=istep)
+        res["heights"] = heights[idxs[ref_chn], :, :]
+
+    if angles:
+        print("Calculating nadir and orbital plane angles ...")
+        nadir_angle, orbplane_angle = calc_nadir_orbplane_angles(df, ref_chn, ref_map)
+        res["nadir_angle"] = nadir_angle[idxs[ref_chn], :, :]
+        res["orbplane_angle"] = orbplane_angle[idxs[ref_chn], :, :]
+
     return res
 
 
@@ -167,6 +243,62 @@ def calc_nadir_orbplane_angles(df, chn, ref_map):
                 nadir_angle[k, i, j] = np.rad2deg(np.arccos(-pix_vec[2]))
                 orbplane_angle[k, i, j] = np.rad2deg(np.arccos(pix_vec[1])) - 90
     return nadir_angle, orbplane_angle
+
+
+def common_grid_heights(df, chn, ref_map, istep=10):
+    """
+    Calculates tangent point heights for reference grid.
+
+    Arguments:
+        df - Pandas data frame with MATS data;
+        chn - string, name of the channel (e.g. "IR1") that determines the times for which angles are calculated;
+        ref_map - ndarray, 2-D Euler angle reference grid. Shape is (num. cols, num. rows, 2);
+        istep - positive integer. Calculating tangent point for every pixel is expensive. To mitigate that,
+                calculations will be performed for every istep'th pixel in each dimension, and the remaining values
+                will be interpolated.
+    Returns:
+        heights - 3D darray, shape is (num. cols, num. rows, num. images).
+    """
+
+    # Select images for the specified channel
+    CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
+    sel = df[df['CCDSEL'] == CCDSEL[chn]]
+    numimg = len(sel)
+
+    ts = load.timescale()
+    if istep > 1:
+        # Make sparse grid
+        xs, ys = ref_map[:, int(ref_map.shape[1] / 2), 0], ref_map[int(ref_map.shape[0] / 2), :, 1]
+        sxs, sys = xs[slice(0, len(xs), istep)], ys[slice(0, len(ys), istep)]
+        if sxs[-1] != xs[-1]:
+            sxs = np.append(sxs, xs[-1])
+        if sys[-1] != ys[-1]:
+            sys = np.append(sys, ys[-1])
+        ref_map_sp = np.zeros((len(sxs), len(sys), 2))
+        ref_map_sp[:, :, 1], ref_map_sp[:, :, 0] = np.meshgrid(sys, sxs)
+    else:
+        ref_map_sp = ref_map.copy()
+
+    heights_sp = np.empty((numimg, ref_map_sp.shape[0], ref_map_sp.shape[1]))
+    conv_fix, _ = R.align_vectors([[1, 0, 0], [0, 1, 0]], [[0, 0, -1], [0, -1, 0]])
+    for k in range(numimg):
+        att = R.from_quat(np.roll(sel.iloc[k]['afsAttitudeState'], -1)) * conv_fix
+        ecipos = sel.iloc[k]['afsGnssStateJ2000'][0:3]
+        t = ts.from_datetime(sel.iloc[k]['EXPDate'])
+        for ix, iy in np.ndindex(ref_map_sp.shape[:2]):
+            ecivec = att.apply(R.from_euler('XYZ', [0, ref_map_sp[ix, iy, 1], ref_map_sp[ix, iy, 0]],
+                                            degrees=True).apply([1, 0, 0]))
+            res = findtangent(t, ecipos, ecivec)
+            heights_sp[k, ix, iy] = res.fun
+
+    if istep <= 1:
+        return heights_sp * 1e-3
+
+    heights = np.empty((numimg, ref_map.shape[0], ref_map.shape[1]))
+    for k in range(numimg):
+        interp = RegularGridInterpolator([sxs, sys], heights_sp[k, :, :], method='cubic')
+        heights[k, :, :] = interp((ref_map[:, :, 0], ref_map[:, :, 1]))
+    return heights * 1e-3
 
 
 def to_ref_att(gnss):
