@@ -510,7 +510,7 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 
 def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
-               ranges=None, optimal_range=False, format='png'):
+               ranges=None, optimal_range=False, format='png', field_of_choise='None', plothistogram=True, clim=None):
     """
        Generates plots from (several) CCD items: image, histogram and map.
        Figures will be saved in subfolders of outdir by CCDSEL.
@@ -533,6 +533,13 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
         set optimised max min for cbar
     format : str
         file format for output img
+    field_of_choise : str
+        field name of image to be plotted
+    plothistogram : bool
+        specifies if histogram should be plotted
+    clim : tuple
+        custom color limits for image
+    
     """
 
     check_type(CCD_dataframe)
@@ -554,7 +561,10 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
                 lvl = check_level(CCD)
 
                 # save parameters for plot
-                image = CCD[image_var[lvl]]
+                if field_of_choise != 'None': #Add the possibility to plot for instance semi-calibrated images
+                    image = CCD[field_of_choise]
+                else:
+                    image = CCD[image_var[lvl]]
                 if lvl == 'L1b':
                     image = np.stack(image)
 
@@ -573,7 +583,8 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
                                       fig=fig)
                 ax1 = plt.subplot2grid((2, 2), (0, 0),
                                        rowspan=1, colspan=2, fig=fig)
-                ax2 = plt.subplot2grid((2, 2), (1, 1), rowspan=1,
+                if plothistogram:
+                    ax2 = plt.subplot2grid((2, 2), (1, 1), rowspan=1,
                                        colspan=1, fig=fig)
 
                 # plot map in figure
@@ -585,9 +596,12 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
                                            nstd=nstd, cmap=cmap,
                                            ranges=ranges,
                                            optimal_range=optimal_range,
-                                           format=format, save=False)
+                                           format=format, save=False, image_field=field_of_choise)
 
                 fig.colorbar(img, ax=ax1)
+                # if custom ranges are used, set clim
+                if clim is not None:
+                    img.set_clim(clim)
 
                 # print out additional information
                 plt.figtext(0.15, 0.03, f'nadirSZA: {nadir_sza:.6}',
@@ -597,8 +611,9 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
                 plt.figtext(0.35, 0.03, f'tpSZA: {TPsza:.6}', fontsize=10)
                 plt.figtext(0.35, 0.06, f'tpSSA: {TPssa:.6}', fontsize=10)
 
-                # plot histogram
-                generate_histogram(ax2, image, ranges,
+                if plothistogram:
+                    # plot histogram
+                    generate_histogram(ax2, image, ranges,
                                    nstd, nbins = nbins)
 
                 save_figure(outpath, CCD, format)

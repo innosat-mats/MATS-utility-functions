@@ -178,3 +178,13 @@ def set_crop_settings(channel, cropversion):
                 NCBINFPGA=0
 
     return NRSKIP, NRBIN, NROW, NCSKIP, NCBIN, NCOL, NCBINFPGA
+
+def make_crop_filter(channel, cropversion):
+    NRSKIP, NRBIN, NROW, NCSKIP, NCBIN, NCOL, NCBINFPGA=set_crop_settings(channel, cropversion)
+    if NCBINFPGA==0:
+        NCBINFPGA=1
+    if NCBIN==0:
+        NCBIN=1
+    cropfilter={'channel':channel, 'NRSKIP':[NRSKIP,NRSKIP], 'NRBIN':[NRBIN, NRBIN], 'NROW': [NROW, NROW], 
+            'NCSKIP':[NCSKIP,NCSKIP], 'NCBINCCDColumns':[NCBIN, NCBIN], 'NCOL': [NCOL, NCOL],'NCBINFPGAColumns':[NCBINFPGA,NCBINFPGA]}
+    return cropfilter

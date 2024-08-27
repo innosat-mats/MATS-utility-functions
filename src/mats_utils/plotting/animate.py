@@ -18,8 +18,10 @@ def generate_gif(directory, outfile):
 
     filenames = glob.glob(f"{directory}/*")
 
-    filenames = sorted(filenames, key=lambda x:
-                       int(os.path.split(x)[1].split('_')[-1].split('.')[0]))
+    # Sort filenames by creation time
+    filenames.sort(key=os.path.getctime)
+    #filenames = sorted(filenames, key=lambda x:
+    #                   int(os.path.split(x)[1].split('_')[-1].split('.')[0]))
 
     with imageio.get_writer(outfile, mode='I') as writer:
         for filename in filenames:
