@@ -91,7 +91,7 @@ def make_ref_grid(df, sample_factor=0.5, ext_factor=1.1):
     return deg_map, grids
 
 
-def to_ref(df, chn, ref_map, time_corrections=None):
+def to_ref(df, chn, ref_map, time_corrections=None, img_var="ImageCalibrated"):
     """
     Reinterpolates MATS images onto reference grid.
 
@@ -104,6 +104,8 @@ def to_ref(df, chn, ref_map, time_corrections=None):
             the specified amount of seconds from it.
         time_shift_compensation - bool. If true, compensates for change in sat. direction between
             acquisition of each image and the correspondinmg ref_chn image (not implemented yet!).
+        img_var - pandas column to interpolate. Default is "ImageCalibrated", and img_var must have the
+                  same shape!
     Returns:
         ndarray, images on reference grid.
     """
@@ -141,15 +143,17 @@ def to_ref(df, chn, ref_map, time_corrections=None):
 
     # Interpolate
     res = np.zeros((numimg, ref_map.shape[0], ref_map.shape[1]))
+    if sel.iloc[0]["ImageCalibrated"].shape != sel.iloc[0][img_var].shape:
+        raise ValueError(f"The input variable ({img_var}) must contain ndarray of the same shape as ImageCalibrated!")
     for k in range(numimg):
-        img = sel.iloc[k]["ImageCalibrated"].T
+        img = sel.iloc[k][img_var].T
         interp = RegularGridInterpolator(chn_grids, img, method='cubic', bounds_error=False, fill_value=np.nan)
         res[k, :, :] = interp((ref_angs[:, :, 0], ref_angs[:, :, 1]))
     return res
 
 
 def multi_channel_set(df, channels, ref_chn, max_time_shift=3, compensate_time_shift=False, ref_map=None,
-                      heights=False, angles=False, istep=10):
+                      heights=False, angles=False, istep=10, extra_vars=[]):
     """
     Creates a dataset of multiple channels on a reference grid.
 
@@ -167,6 +171,7 @@ def multi_channel_set(df, channels, ref_chn, max_time_shift=3, compensate_time_s
         angles - bool, whether to calculate angles to nadir and orbital plane for reference grid.
         istep - speed up tangent point heigh calculation by calculating for every istep'th pixel in
                 each dimension and interpolating.
+        extra_vars - pandas columns that will be interpolated in addition to "ImageCalibrated".
 
     Returns:
         dict, with results (ndarrays of shape (img. number, num. cols, num. rows)). Includes grid angles
@@ -175,7 +180,6 @@ def multi_channel_set(df, channels, ref_chn, max_time_shift=3, compensate_time_s
         included as a 1-D ndarray.
 
     """
-
 
     CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
     ref = df[df['CCDSEL'] == CCDSEL[ref_chn]]
@@ -196,6 +200,9 @@ def multi_channel_set(df, channels, ref_chn, max_time_shift=3, compensate_time_s
         print(f"interpolarting {ch}...")
         on_ref_grid = to_ref(df, ch, ref_map)
         res[ch] = on_ref_grid[idxs[ch], :, :]
+        for ev in extra_vars:
+            on_ref_grid = to_ref(df, ch, ref_map, img_var=ev)
+            res[f"{ch}_{ev}"] = on_ref_grid[idxs[ch], :, :]
 
     if heights:
         print("Calculating tangent point heights ...")
