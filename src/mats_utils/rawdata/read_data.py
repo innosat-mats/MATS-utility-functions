@@ -228,11 +228,12 @@ def store_as_parquet(df, fname):
 
     """
 
-    df["ImageCalibrated"] = [arr.flatten() for arr in df["ImageCalibrated"]]
+    if "ImageCalibrated" in df.columns:
+        df["ImageCalibrated"] = [arr.flatten() for arr in df["ImageCalibrated"]]
     df.to_parquet(fname, compression='gzip', engine='pyarrow', allow_truncated_timestamps=True, coerce_timestamps='ms')
 
 
-def load_parquet(fname, start=None, stop=None, filt={}, fail_if_empty=True, fail_if_no_file=True):
+def load_parquet(fname, start=None, stop=None, filt={}, fail_if_empty=True, fail_if_no_file=True, time_var="EXPDate"):
     """ Loads pandas dataframe from parquet file. Has similar args as read_MATS_data.
 
         Args:
@@ -264,9 +265,9 @@ def load_parquet(fname, start=None, stop=None, filt={}, fail_if_empty=True, fail
         valid = np.logical_and(valid, df[col] <= lim[1])
 
     if start is not None:
-        valid = np.logical_and(valid, df["EXPDate"] >= start.replace(tzinfo=timezone.utc))
+        valid = np.logical_and(valid, df[time_var] >= start.replace(tzinfo=timezone.utc))
     if stop is not None:
-        valid = np.logical_and(valid, df["EXPDate"] <= stop.replace(tzinfo=timezone.utc))
+        valid = np.logical_and(valid, df[time_var] <= stop.replace(tzinfo=timezone.utc))
 
     if not np.all(valid):
         df = df[valid]
@@ -275,14 +276,14 @@ def load_parquet(fname, start=None, stop=None, filt={}, fail_if_empty=True, fail
             raise RuntimeError("There are no images in this data set! Adjust start and stop times or filters!")
         else:
             return df
-
-    df["ImageCalibrated"] = [arr.reshape((df["NROW"].iloc[i], df["NCOL"].iloc[i] + 1))
-                             for i, arr in enumerate(df["ImageCalibrated"])]
+    if "ImageCalibrated" in df.columns:
+        df["ImageCalibrated"] = [arr.reshape((df["NROW"].iloc[i], df["NCOL"].iloc[i] + 1))
+                                 for i, arr in enumerate(df["ImageCalibrated"])]
     df.reset_index(drop=True, inplace=True)
     return df
 
 
-def load_multi_parquet(dirname, start, stop, filt={}, fail_if_empty=True):
+def load_multi_parquet(dirname, start, stop, filt={}, fail_if_empty=True, time_var="EXPDate"):
     """ Loads pandas dataframe from parquet files from specified directory. If the specified time interval spans
         multiple files, the loaded data sets are merged. Has similar args as read_MATS_data.
 
