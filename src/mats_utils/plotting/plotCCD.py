@@ -10,6 +10,7 @@ from cartopy.feature.nightshade import Nightshade
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mats_utils.geolocation import coordinates
 from matplotlib.artist import Artist
+from database_generation.experimental_utils import plot_CCDimage
 
 flipped_CCDs = ['IR1', 'IR3', 'UV1', 'UV2', 'NADIR']
 image_var = {'L1a': 'IMAGE', 'L1b': 'ImageCalibrated'}
@@ -510,7 +511,7 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 
 def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
-               ranges=None, optimal_range=False, format='png', field_of_choise='None', plothistogram=True, clim=None):
+               ranges=None, optimal_range=False, format='png', field_of_choise='None', plothistogram=True, clim=None, useplotCCDimage=False):
     """
        Generates plots from (several) CCD items: image, histogram and map.
        Figures will be saved in subfolders of outdir by CCDSEL.
@@ -592,11 +593,16 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
                                   satlon, TPlat, TPlon)
 
                 # plot CCD image
-                fig, ax1, img = plot_image(CCD, ax1, fig, outpath=outdir,
-                                           nstd=nstd, cmap=cmap,
-                                           ranges=ranges,
-                                           optimal_range=optimal_range,
-                                           format=format, save=False, image_field=field_of_choise)
+                if useplotCCDimage:
+                    img=plot_CCDimage(image, axis=ax1, fig=fig, clim=ranges, nrsig=nstd, colorbar=False, cmap=cmap)
+                else:
+                    fig, ax1, img = plot_image(CCD, ax1, fig, outpath=outdir,
+                                               nstd=nstd, cmap=cmap,
+                                               ranges=ranges,
+                                               optimal_range=optimal_range,
+                                               format=format, save=False, image_field=field_of_choise)
+
+
 
                 fig.colorbar(img, ax=ax1)
                 # if custom ranges are used, set clim

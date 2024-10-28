@@ -12,9 +12,15 @@ import pytz
 #%matplotlib widget
 
 
-def read_MATS_data(start_date,end_date,filter=None,version='0.4',level='1a',dev=False, pritfilesys=True):
+def read_MATS_data(start_date,end_date,filter=None,version=False,level='1a',dev=False, pritfilesys=True):
     session = boto3.session.Session(profile_name="mats")
     credentials = session.get_credentials()
+
+    if version == False:
+        if level == '1a':
+            version = '0.7'
+        elif level == '1b':
+            version = '0.4'
 
     s3 = fs.S3FileSystem(
         secret_key=credentials.secret_key,
