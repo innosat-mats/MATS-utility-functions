@@ -41,6 +41,7 @@ def plot_schedule(df,column='name',start_date=None,end_date=None):
         plt.plot([x1, x2], [y, y],linewidth=3)
     plt.title('Payload schedule')
     plt.grid()
-    plt.rcParams["figure.figsize"] = (20,5)
+    plt.yticks(fontsize=6)  # Set font size for y-axis tick labels
+    plt.rcParams["figure.figsize"] = (100,20)
     plt.show()
     

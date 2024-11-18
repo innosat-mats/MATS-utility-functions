@@ -43,6 +43,7 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument, debug_ou
                 image_calibrated, 
                 errors
             ) = L1_calibrate.L1_calibrate(ccd, instrument, force_table=False, return_steps=True)
+            
             ccd["ImageCalibrated"] = image_calibrated
             ccd["CalibrationErrors"] = errors
 
@@ -57,7 +58,6 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument, debug_ou
                 ccd["image_flatfielded"] = image_flatfielded
                 ccd["image_flipped"] = image_flipped
                 
-
 
 
 
