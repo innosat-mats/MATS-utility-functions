@@ -555,7 +555,7 @@ def angles(ccditem):
     sundir= TP_pos.at(t).observe(sun).apparent()
     obs= sundir.altaz()
     TPsza = (90-obs[0].degrees)
-    TPssa = (np.rad2deg(np.arccos(np.dot(FOV,sundir.position.m / norm(sundir.position.m)))))
+    TPssa = (np.rad2deg(np.arccos(np.dot(-FOV,sundir.position.m / norm(sundir.position.m)))))
     return nadir_sza, TPsza, TPssa, tpLT
 
 
