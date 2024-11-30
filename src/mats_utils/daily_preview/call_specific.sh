@@ -10,17 +10,17 @@ MATS_dir='/home/waves/projects/MATS/'
 
 # options 
 level="1b"
-version="0.5"
+version="0.6"
 
 outdir_main='/media/waves/AVAGO/data/MATS/animations/specific'
 
-for day_str in 11
+for day_str in {30,1}
 do
     # start end
     end_day_str=$((day_str+1))
 
-    start_date="2023-11-${day_str}"
-    end_date="2023-11-${end_day_str}"
+    start_date="2024-04-${day_str}"
+    end_date="2024-05-1"
 
     folder_str=$start_date
     outdir="${outdir_main}/${folder_str}/"

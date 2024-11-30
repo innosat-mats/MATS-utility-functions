@@ -51,9 +51,9 @@ def parallel_plotting(part):
             start_point = part*files_per_part-1
         try:
             if (part+1)*files_per_part < int(len(CCDitems)):
-                all_channels_plot(CCDitems[start_point:(part+1)*files_per_part-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True, num_name=True)
+                all_channels_plot(CCDitems[start_point:(part+1)*files_per_part-1], outdir=outdir+'part'+str(part)+'/', optimal_range=False, num_name=True)
             else:
-                all_channels_plot(CCDitems[start_point:int(len(CCDitems))-1], outdir=outdir+'part'+str(part)+'/', optimal_range=True, num_name=True)
+                all_channels_plot(CCDitems[start_point:int(len(CCDitems))-1], outdir=outdir+'part'+str(part)+'/', optimal_range=False, num_name=True)
         except KeyboardInterrupt:
             sys.exit()
     else:
