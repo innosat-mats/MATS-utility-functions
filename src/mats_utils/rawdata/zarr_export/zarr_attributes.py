@@ -18,12 +18,12 @@ def get_coords(df: DataFrame | None, config: dict[str, any]) -> Coordinates:
     if empty:
         coords["im_col"].attrs = {
             "units": "",
-            "standard_name": "im_col",
+            # "standard_name": "im_col",
             "long_name": "Image Column Number",
         }
         coords["im_row"].attrs = {
             "units": "",
-            "standard_name": "im_row",
+            # "standard_name": "im_row",
             "long_name": "Image Row Number",
         }
         coords["time"].attrs = {
@@ -32,17 +32,17 @@ def get_coords(df: DataFrame | None, config: dict[str, any]) -> Coordinates:
         }
         coords["quaternion"].attrs = {
             "units": "",
-            "standard_name": "quaternion",
+            # "standard_name": "quaternion",
             "long_name": "Quaternion Components",
         }
         coords["eci_pos"].attrs = {
             "units": "",
-            "standard_name": "eci_pos",
+            # "standard_name": "eci_pos",
             "long_name": "ECI Position Components",
         }
         coords["gnss_state"].attrs = {
             "units": "",
-            "standard_name": "gnss_state",
+            # "standard_name": "gnss_state",
             "long_name": "GNSS State Components",
         }
 
@@ -66,7 +66,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Calibrated image (spectral radiance)",
-                    "standard_name": "ImageCalibrated",
+                    "standard_name": "spectral_radiance",
                     "units": "photon nanometer-1 meter-2 steradian-1 second-1",
                 }
             ),
@@ -102,8 +102,8 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 None
                 if not empty
                 else {
-                    "long_name": "Attitude state quaternion",
-                    "standard_name": "afsAttitudeState",
+                    "long_name": "Quaternion relating satelite body frame to Earth-centered inertial (ECI) coordinate",
+                    # "standard_name": "afsAttitudeState",
                     "units": "",
                 }
             ),
@@ -116,8 +116,8 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 None
                 if not empty
                 else {
-                    "long_name": "Q prime quaternion",
-                    "standard_name": "qprime",
+                    "long_name": "Quaternion relating channel to satellite body frame",
+                    # "standard_name": "qprime",
                     "units": "",
                 }
             ),
@@ -135,66 +135,66 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "GNSS state in J2000 frame",
-                    "standard_name": "afsGnssStateJ2000",
+                    # "standard_name": "afsGnssStateJ2000",
                     "units": "",
                 }
             ),
             encoding={"dtype": "float64"},
         ),
-        "afsTangentPointECI": Variable(
-            dims=["time", "eci_pos"],
-            data=(
-                np.empty((0, 3), dtype="float64")
-                if empty
-                else np.stack(df.afsTangentPointECI)
-            ),
-            attrs=(
-                None
-                if not empty
-                else {
-                    "long_name": "Tangent point in ECI frame",
-                    "standard_name": "afsTangentPointECI",
-                    "units": "",
-                }
-            ),
-            encoding={"dtype": "float64"},
-        ),
-        "afsTPLongGeod": Variable(
-            dims=["time"],
-            data=(
-                np.empty((0,), dtype="float64")
-                if empty
-                else df.afsTPLongLatGeod.apply(lambda x: x[0])
-            ),
-            attrs=(
-                None
-                if not empty
-                else {
-                    "long_name": "Tangent point longitude in geodetic coordinates",
-                    "standard_name": "afsTPLongGeod",
-                    "units": "degree_east",
-                }
-            ),
-            encoding={"dtype": "float64"},
-        ),
-        "afsTPLatGeod": Variable(
-            dims=["time"],
-            data=(
-                np.empty((0,), dtype="float64")
-                if empty
-                else df.afsTPLongLatGeod.apply(lambda x: x[1])
-            ),
-            attrs=(
-                None
-                if not empty
-                else {
-                    "long_name": "Tangent point latitude in geodetic coordinates",
-                    "standard_name": "afsTPLatGeod",
-                    "units": "degree_north",
-                }
-            ),
-            encoding={"dtype": "float64"},
-        ),
+        # "afsTangentPointECI": Variable(
+        #     dims=["time", "eci_pos"],
+        #     data=(
+        #         np.empty((0, 3), dtype="float64")
+        #         if empty
+        #         else np.stack(df.afsTangentPointECI)
+        #     ),
+        #     attrs=(
+        #         None
+        #         if not empty
+        #         else {
+        #             "long_name": "Tangent point in ECI frame",
+        #             # "standard_name": "afsTangentPointECI",
+        #             "units": "",
+        #         }
+        #    ),
+        #    encoding={"dtype": "float64"},
+        # ),
+        # "afsTPLongGeod": Variable(
+        #     dims=["time"],
+        #     data=(
+        #         np.empty((0,), dtype="float64")
+        #         if empty
+        #         else df.afsTPLongLatGeod.apply(lambda x: x[0])
+        #     ),
+        #    attrs=(
+        #        None
+        #         if not empty
+        #         else {
+        #             "long_name": "Tangent point longitude in geodetic coordinates",
+        #            # "standard_name": "afsTPLongGeod",
+        #            "units": "degree_east",
+        #         }
+        #    ),
+        #     encoding={"dtype": "float64"},
+        # ),
+        # "afsTPLatGeod": Variable(
+        #    dims=["time"],
+        #    data=(
+        #         np.empty((0,), dtype="float64")
+        #         if empty
+        #         else df.afsTPLongLatGeod.apply(lambda x: x[1])
+        #     ),
+        #     attrs=(
+        #         None
+        #         if not empty
+        #         else {
+        #            "long_name": "Tangent point latitude in geodetic coordinates",
+        #            # "standard_name": "afsTPLatGeod",
+        #             "units": "degree_north",
+        #        }
+        #    ),
+        #     encoding={"dtype": "float64"},
+        # ),
         "satheight": Variable(
             dims=["time"],
             data=(np.empty((0,), dtype="float64") if empty else df.satheight.values),
@@ -203,7 +203,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Satellite altitude at time of measurement",
-                    "standard_name": "satheight",
+                    # "standard_name": "satheight",
                     "units": "meter",
                 }
             ),
@@ -217,7 +217,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Satellite longitude at time of measurement",
-                    "standard_name": "satlon",
+                    "standard_name": "deployment_longitude",
                     "units": "degree_east",
                 }
             ),
@@ -231,7 +231,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Satellite latitude at time of measurement",
-                    "standard_name": "satlat",
+                    "standard_name": "deployment_latitude",
                     "units": "degree_north",
                 }
             ),
@@ -245,7 +245,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Altitude of tangent point for nominal instrument axis at the time of measurement",
-                    "standard_name": "TPheight",
+                    # "standard_name": "TPheight",
                     "units": "meter",
                 }
             ),
@@ -259,7 +259,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Longitude of tangent point for nominal instrument axis at the time of measurement",
-                    "standard_name": "TPlon",
+                    # "standard_name": "TPlon",
                     "units": "degree_east",
                 }
             ),
@@ -273,7 +273,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Latitude of tangent point for nominal instrument axis at the time of measurement",
-                    "standard_name": "TPlat",
+                    # "standard_name": "TPlat",
                     "units": "degree_north",
                 }
             ),
@@ -287,7 +287,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "JPEG compression quality setting",
-                    "standard_name": "JPEGQ",
+                    # "standard_name": "JPEGQ",
                     "units": "",
                 }
             ),
@@ -300,6 +300,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 None
                 if not empty
                 else {
+                    "long_name": "Image exposure duration",
                     "units": "millisecond",
                 }
             ),
@@ -313,7 +314,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Schedule ID",
-                    "standard_name": "schedule_id",
+                    # "standard_name": "schedule_id",
                     "units": "",
                 }
             ),
@@ -327,7 +328,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Version of schedule",
-                    "standard_name": "schedule_version",
+                    # "standard_name": "schedule_version",
                     "units": "",
                 }
             ),
@@ -341,7 +342,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Scheduled yaw correction (1 if True)",
-                    "standard_name": "schedule_yaw_correction",
+                    # "standard_name": "schedule_yaw_correction",
                     "units": "",
                 }
             ),
@@ -355,7 +356,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Solar azimuth angle at satellite position",
-                    "standard_name": "nadir_az",
+                    # "standard_name": "nadir_az",
                     "units": "degree",
                 }
             ),
@@ -369,7 +370,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Solar zenith angle at satellite position",
-                    "standard_name": "nadir_sza",
+                    # "standard_name": "nadir_sza",
                     "units": "degree",
                 }
             ),
@@ -383,7 +384,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Solar scattering angle at tangent point",
-                    "standard_name": "TPssa",
+                    "standard_name": "scattering_angle",
                     "units": "degree",
                 }
             ),
@@ -397,7 +398,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Solar zenith angle at tangent point",
-                    "standard_name": "TPsza",
+                    "standard_name": "solar_zenith_angle",
                     "units": "degree",
                 }
             ),
@@ -411,7 +412,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "CCD housing temperature",
-                    "standard_name": "temperature",
+                    # "standard_name": "temperature",
                     "units": "degree_celsius",
                 }
             ),
@@ -425,7 +426,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Number of columns binned together on-chip",
-                    "standard_name": "NCBINCCDColumns",
+                    # "standard_name": "NCBINCCDColumns",
                     "units": "",
                 }
             ),
@@ -439,7 +440,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Number of columns binned together in FPGA",
-                    "standard_name": "NCBINFPGAColumns",
+                    # "standard_name": "NCBINFPGAColumns",
                     "units": "",
                 }
             ),
@@ -453,7 +454,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Number of columns in the image",
-                    "standard_name": "NCOL",
+                    # "standard_name": "NCOL",
                     "units": "",
                 }
             ),
@@ -467,7 +468,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Number of columns skipped before binning",
-                    "standard_name": "NCSKIP",
+                    # "standard_name": "NCSKIP",
                     "units": "",
                 }
             ),
@@ -481,7 +482,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Number of rows that are binned together",
-                    "standard_name": "NRBIN",
+                    # "standard_name": "NRBIN",
                     "units": "",
                 }
             ),
@@ -495,7 +496,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Number of rows in the image",
-                    "standard_name": "NROW",
+                    # "standard_name": "NROW",
                     "units": "",
                 }
             ),
@@ -509,7 +510,7 @@ def get_data_vars(df: DataFrame | None, config: dict[str, any]) -> dict[str, Var
                 if not empty
                 else {
                     "long_name": "Number of rows skipped before binning",
-                    "standard_name": "NRSKIP",
+                    # "standard_name": "NRSKIP",
                     "units": "",
                 }
             ),
