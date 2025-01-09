@@ -69,7 +69,6 @@ def calibrate_dataframe(ccd_data_in: DataFrame, instrument: Instrument, debug_ou
                 "ImageCalibrated",
                 "CalibrationErrors",
                 "qprime",
-                "channel",
                 "flipped",
                 "temperature",
                 "temperature_HTR",

@@ -329,7 +329,7 @@ def generate_histogram(ax, image, ranges, nstd, nbins=None):
 def plot_image(CCD, ax=None, fig=None, outpath=None,
                nstd=2, cmap='inferno', ranges=None,
                optimal_range=False, format='png', save=True,
-               fontsize=10, TPheights=True, image_field='None'):
+               fontsize=10, TPheights=True, image_field='None', title='None'):
     """
     Function to plot single MATS image
 
@@ -357,6 +357,8 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
         determines font size 
     image_field : str
         field name of image to be plotted
+    title : str
+        title of plot
 
     """
 
@@ -427,8 +429,11 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
             ax.clabel(CS, inline=True)
 
     # add title
-    ax.set_title(f'ch: {channel}; time: '
-                 + f'{exp_date}; TEXPMS: {texpms}', fontsize=fontsize)
+    if title != 'None':
+        ax.set_title(title, fontsize=fontsize)
+    else:
+        ax.set_title(f'ch: {channel}; time: '
+                     + f'{exp_date}; TEXPMS: {texpms}', fontsize=fontsize)
 
     
     if (save and outpath==None):
