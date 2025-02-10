@@ -18,9 +18,8 @@ from pyarrow import fs
 import boto3
 import pyarrow as pa  # type: ignore
 import pyarrow.dataset as ds  # type: ignore
-from pandas import DataFrame, Timestamp  # type: ignore
+from pandas import DataFrame, Timestamp, to_datetime  # type: ignore
 from skyfield import api as sfapi
-import math
 
 
 def get_deg_map(image):
@@ -427,12 +426,6 @@ def get_temporal_rotation(df, data_chn, ref_chn):
     return trots, times
 
 
-def funheight(s, t, pos, FOV):
-    newp = pos + s * FOV
-    newp = ICRF(Distance(m=newp).au, t=t, center=399)
-    return wgs84.subpoint(newp).elevation.m
-
-
 def meanquaternion(start_date: datetime, deltat: timedelta):
     """
     Function giving the mean quaternion during a
@@ -471,6 +464,12 @@ def meanquaternion(start_date: datetime, deltat: timedelta):
     return np.vstack(df.afsAttitudeState).mean(axis=0)
 
 
+def funheight(s, t, pos, FOV):
+    newp = pos + s * FOV
+    newp = ICRF(Distance(m=newp).au, t=t, center=399)
+    return wgs84.subpoint(newp).elevation.m
+
+
 def findtangent(t, pos, FOV, bracket=(1e5, 3e5)):
     res = minimize_scalar(funheight, args=(t, pos, FOV), bracket=bracket)
     return res
@@ -485,7 +484,15 @@ def findheight(t, pos, FOV, height, bracket=(1e5, 3e5)):
     return res
 
 
-def col_heights(ccditem, x, nheights=None, spline=False, splineTPpos=False):
+def col_heights(
+    ccditem,
+    x,
+    nheights=None,
+    spline=False,
+    splineTPpos=False,
+    THandECEF=False,
+    splineTHandECEF=False,
+):
     if nheights == None:
         nheights = ccditem["NROW"]
     d = ccditem["EXPDate"]
@@ -509,6 +516,122 @@ def col_heights(ccditem, x, nheights=None, spline=False, splineTPpos=False):
         return CubicSpline(ypixels, ths)
     elif splineTPpos:
         return CubicSpline(ypixels, TPpos)
+    elif THandECEF:
+        return ths, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m.T
+    elif splineTHandECEF:
+        return CubicSpline(
+            ypixels,
+            np.vstack(
+                [TPpos, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m]
+            ),
+        )
+    else:
+        return ths
+
+
+def pix_deg_xr(ccditem, xpixel, ypixel):
+    """
+    Function to get the x and y angle from a pixel relative to the center of the CCD
+
+    Arguments
+    ----------
+    ccditem : CCDitem
+        measurement
+    xpixel : int or array[int]
+        x coordinate of the pixel(s) in the image
+    ypixel : int or array[int]
+        y coordinate of the pixel(s) in the image
+
+    Returns
+    -------
+    xdeg : float or array[float]
+        angular deviation along the x axis in degrees (relative to the center of the CCD)
+    ydeg : float or array[float]
+        angular deviation along the y axis in degrees (relative to the center of the CCD)
+    """
+
+    h = 6.9  # height of the CCD in mm
+    d = 27.6  # width of the CCD in mm
+
+    # selecting effective focal length
+    if (ccditem["channel"]) == "NADIR":  # NADIR channel
+        f = 50.6  # effective focal length in mm
+    else:  # LIMB channels
+        f = 261
+
+    ncskip = ccditem["NCSKIP"].values
+    try:
+        ncbin = ccditem["NCBIN CCDColumns"].values
+    except:
+        ncbin = ccditem["NCBINCCDColumns"].values
+    nrskip = ccditem["NRSKIP"].values
+    nrbin = ccditem["NRBIN"].values
+    ncol = ccditem["NCOL"].values  # number of columns in the image MINUS 1
+
+    y_disp = h / (f * 511)
+    x_disp = d / (f * 2048)
+
+    if (ccditem["channel"]) in ["IR1", "IR3", "UV1", "UV2", "NADIR"]:
+        xdeg = np.rad2deg(
+            np.arctan(
+                x_disp
+                * (
+                    (2048 - ncskip - (ncol + 1) * ncbin + ncbin * (xpixel + 0.5))
+                    - 2047.0 / 2
+                )
+            )
+        )
+    else:
+        xdeg = np.rad2deg(
+            np.arctan(x_disp * (ncskip + ncbin * (xpixel + 0.5) - 2047.0 / 2))
+        )
+
+    ydeg = np.rad2deg(np.arctan(y_disp * (nrskip + nrbin * (ypixel + 0.5) - 510.0 / 2)))
+
+    return xdeg, ydeg
+
+
+def col_heights_xr(
+    ccditem,
+    x,
+    nheights=None,
+    spline=False,
+    splineTPpos=False,
+    THandECEF=False,
+    splineTHandECEF=False,
+):
+    if nheights == None:
+        nheights = ccditem["NROW"]
+    d = to_datetime(ccditem["time"].values).tz_localize("UTC").to_pydatetime()
+    ts = load.timescale()
+    t = ts.from_datetime(d)
+    ecipos = ccditem["afsGnssStateJ2000"][0:3]
+    q = ccditem["afsAttitudeState"]
+    quat = R.from_quat(np.roll(q, -1))
+    qprime = R.from_quat(ccditem["qprime"])
+    ypixels = np.linspace(0, ccditem["NROW"], nheights)
+    ths = np.zeros_like(ypixels)
+    TPpos = np.zeros((len(ypixels), 3))
+    xdeg, ydeg = pix_deg_xr(ccditem, x, ypixels)
+    for iy, y in enumerate(ydeg):
+        los = R.from_euler("XYZ", [0, y, xdeg], degrees=True).apply([1, 0, 0])
+        ecivec = quat.apply(qprime.apply(los))
+        res = findtangent(t, ecipos, ecivec)
+        TPpos[iy, :] = ecipos + res.x * ecivec
+        ths[iy] = res.fun
+    if spline:
+        return CubicSpline(ypixels, ths)
+    elif splineTPpos:
+        return CubicSpline(ypixels, TPpos)
+    elif THandECEF:
+        return ths, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m
+    elif splineTHandECEF:
+        return CubicSpline(
+            ypixels,
+            np.vstack(
+                [TPpos, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m]
+            ),
+        )
     else:
         return ths
 
@@ -520,17 +643,57 @@ def heights(ccditem):
     return ths
 
 
-def fast_heights(ccditem, nx=5, ny=10):
+def fast_heights(ccditem, nx=5, ny=10, retTHandECEF=False, retInterp=False):
     xpixels = np.linspace(0, ccditem["NCOL"], nx)
-    ypixels = np.linspace(0, ccditem["NROW"], ny)
-    ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
-    for i, col in enumerate(xpixels):
-        ths_tmp[i, :] = col_heights(ccditem, col, ny * 2, spline=True)(ypixels)
+    ypixels = np.linspace(0, ccditem["NROW"] - 1, ny)
+    if retTHandECEF:
+        ths_tmp = np.zeros([nx, ny, 4])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :, 0], ths_tmp[i, :, 1:] = col_heights(
+                ccditem, col, ny, THandECEF=True
+            )
+    else:
+        ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :] = col_heights(ccditem, col, ny)
     interpolator = RegularGridInterpolator((xpixels, ypixels), ths_tmp, method="cubic")
     fullxgrid = np.arange(ccditem["NCOL"] + 1)
     fullygrid = np.arange(ccditem["NROW"])
     XX, YY = np.meshgrid(fullxgrid, fullygrid, sparse=True)
-    return interpolator((XX, YY))
+    if retInterp:
+        return interpolator
+    else:
+        return interpolator((XX, YY))
+
+
+def fast_heights_xr(
+    ccditem,
+    nx=5,
+    ny=10,
+    retTHandECEF=False,
+    retInterp=False,
+):
+    xpixels = np.linspace(0, ccditem["NCOL"], nx)
+    ypixels = np.linspace(0, ccditem["NROW"] - 1, ny)
+    ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
+    if retTHandECEF:
+        ths_tmp = np.zeros([nx, ny, 4])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :, 0], ths_tmp[i, :, 1:] = col_heights_xr(
+                ccditem, col, ny, THandECEF=True
+            )
+    else:
+        ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :] = col_heights_xr(ccditem, col, ny)
+    interpolator = RegularGridInterpolator((xpixels, ypixels), ths_tmp, method="cubic")
+    fullxgrid = np.arange(ccditem["NCOL"] + 1)
+    fullygrid = np.arange(ccditem["NROW"])
+    XX, YY = np.meshgrid(fullxgrid, fullygrid, sparse=True)
+    if retInterp:
+        return interpolator
+    else:
+        return interpolator((XX, YY))
 
 
 def satpos(ccditem):
