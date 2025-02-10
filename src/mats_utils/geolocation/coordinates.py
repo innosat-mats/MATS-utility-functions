@@ -571,7 +571,7 @@ def pix_deg_xr(ccditem, xpixel, ypixel):
     y_disp = h / (f * 511)
     x_disp = d / (f * 2048)
 
-    if (ccditem["Channel"]) in ["IR1", "IR3", "UV1", "UV2", "NADIR"]:
+    if (ccditem["channel"]) in ["IR1", "IR3", "UV1", "UV2", "NADIR"]:
         xdeg = np.rad2deg(
             np.arctan(
                 x_disp
