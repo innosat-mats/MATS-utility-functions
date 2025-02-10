@@ -554,7 +554,7 @@ def pix_deg_xr(ccditem, xpixel, ypixel):
     d = 27.6  # width of the CCD in mm
 
     # selecting effective focal length
-    if (ccditem["Channel"]) == "NADIR":  # NADIR channel
+    if (ccditem["channel"]) == "NADIR":  # NADIR channel
         f = 50.6  # effective focal length in mm
     else:  # LIMB channels
         f = 261
