@@ -624,7 +624,7 @@ def col_heights_xr(
     elif splineTPpos:
         return CubicSpline(ypixels, TPpos)
     elif THandECEF:
-        return ths, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m
+        return ths, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m.T
     elif splineTHandECEF:
         return CubicSpline(
             ypixels,
