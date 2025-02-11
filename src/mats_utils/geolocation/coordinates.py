@@ -554,7 +554,7 @@ def pix_deg_xr(ccditem, xpixel, ypixel):
     d = 27.6  # width of the CCD in mm
 
     # selecting effective focal length
-    if (ccditem["channel"]) == "NADIR":  # NADIR channel
+    if (ccditem["channel"].values) == "NADIR":  # NADIR channel
         f = 50.6  # effective focal length in mm
     else:  # LIMB channels
         f = 261
@@ -571,7 +571,7 @@ def pix_deg_xr(ccditem, xpixel, ypixel):
     y_disp = h / (f * 511)
     x_disp = d / (f * 2048)
 
-    if (ccditem["channel"]) in ["IR1", "IR3", "UV1", "UV2", "NADIR"]:
+    if (ccditem["channel"].values) in ["IR1", "IR3", "UV1", "UV2", "NADIR"]:
         xdeg = np.rad2deg(
             np.arctan(
                 x_disp
@@ -601,15 +601,15 @@ def col_heights_xr(
     splineTHandECEF=False,
 ):
     if nheights == None:
-        nheights = ccditem["NROW"]
+        nheights = ccditem["NROW"].values
     d = to_datetime(ccditem["time"].values).tz_localize("UTC").to_pydatetime()
     ts = load.timescale()
     t = ts.from_datetime(d)
-    ecipos = ccditem["afsGnssStateJ2000"][0:3]
-    q = ccditem["afsAttitudeState"]
+    ecipos = ccditem["afsGnssStateJ2000"].values[0:3]
+    q = ccditem["afsAttitudeState"].values
     quat = R.from_quat(np.roll(q, -1))
-    qprime = R.from_quat(ccditem["qprime"])
-    ypixels = np.linspace(0, ccditem["NROW"], nheights)
+    qprime = R.from_quat(ccditem["qprime"].values)
+    ypixels = np.linspace(0, ccditem["NROW"].values, nheights)
     ths = np.zeros_like(ypixels)
     TPpos = np.zeros((len(ypixels), 3))
     xdeg, ydeg = pix_deg_xr(ccditem, x, ypixels)
@@ -673,8 +673,8 @@ def fast_heights_xr(
     retTHandECEF=False,
     retInterp=False,
 ):
-    xpixels = np.linspace(0, ccditem["NCOL"], nx)
-    ypixels = np.linspace(0, ccditem["NROW"] - 1, ny)
+    xpixels = np.linspace(0, ccditem["NCOL"].values, nx)
+    ypixels = np.linspace(0, ccditem["NROW"].values - 1, ny)
     ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
     if retTHandECEF:
         ths_tmp = np.zeros([nx, ny, 4])
@@ -687,8 +687,8 @@ def fast_heights_xr(
         for i, col in enumerate(xpixels):
             ths_tmp[i, :] = col_heights_xr(ccditem, col, ny)
     interpolator = RegularGridInterpolator((xpixels, ypixels), ths_tmp, method="cubic")
-    fullxgrid = np.arange(ccditem["NCOL"] + 1)
-    fullygrid = np.arange(ccditem["NROW"])
+    fullxgrid = np.arange(ccditem["NCOL"].values + 1)
+    fullygrid = np.arange(ccditem["NROW"].values)
     XX, YY = np.meshgrid(fullxgrid, fullygrid, sparse=True)
     if retInterp:
         return interpolator
