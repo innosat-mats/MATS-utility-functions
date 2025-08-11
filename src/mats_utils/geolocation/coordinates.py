@@ -6,7 +6,6 @@ from scipy.optimize import minimize_scalar
 from scipy.interpolate import RegularGridInterpolator
 from skyfield.api import wgs84
 from skyfield.api import load
-from skyfield.units import Distance
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import CubicSpline
@@ -16,6 +15,7 @@ import datetime as DT
 from datetime import datetime, timedelta, timezone
 from pyarrow import fs
 import boto3
+import toml
 import pyarrow as pa  # type: ignore
 import pyarrow.dataset as ds  # type: ignore
 from pandas import DataFrame, Timestamp, to_datetime  # type: ignore
@@ -507,7 +507,7 @@ def col_heights(
     TPpos = np.zeros((len(ypixels), 3))
     xdeg, ydeg = pix_deg(ccditem, x, ypixels)
     for iy, y in enumerate(ydeg):
-        los = R.from_euler("XYZ", [0, y, xdeg], degrees=True).apply([1, 0, 0])
+        los = R.from_euler("XYZ", [0, y, xdeg[iy]], degrees=True).apply([1, 0, 0])
         ecivec = quat.apply(qprime.apply(los))
         res = findtangent(t, ecipos, ecivec)
         TPpos[iy, :] = ecipos + res.x * ecivec
@@ -571,23 +571,41 @@ def pix_deg_xr(ccditem, xpixel, ypixel):
     y_disp = h / (f * 511)
     x_disp = d / (f * 2048)
 
-    if (ccditem["channel"].values) in ["IR1", "IR3", "UV1", "UV2", "NADIR"]:
-        xdeg = np.rad2deg(
-            np.arctan(
-                x_disp
-                * (
-                    (2048 - ncskip - (ncol + 1) * ncbin + ncbin * (xpixel + 0.5))
-                    - 2047.0 / 2
-                )
-            )
-        )
+    if (ccditem["CCDSEL"]) in [1, 3, 5, 6, 7]:
+        x_full = 2048 - ncskip - (ncol + 1) * ncbin + ncbin * (xpixel + 0.5)
+
+        # xdeg = np.rad2deg(np.arctan(
+        #         x_disp * ((2048 - ncskip - (ncol + 1) * ncbin + ncbin * (xpixel + 0.5))- 2047.0 / 2 )
+        # ))
     else:
-        xdeg = np.rad2deg(
-            np.arctan(x_disp * (ncskip + ncbin * (xpixel + 0.5) - 2047.0 / 2))
-        )
+        x_full = ncskip + ncbin * (xpixel + 0.5)
+        # xdeg = np.rad2deg(np.arctan(
+        #     x_disp*(ncskip + ncbin * (xpixel+0.5) - 2047. / 2)
+        # ))
 
-    ydeg = np.rad2deg(np.arctan(y_disp * (nrskip + nrbin * (ypixel + 0.5) - 510.0 / 2)))
-
+    y_full = nrskip + nrbin * (ypixel + 0.5)
+    # ydeg = np.rad2deg(np.arctan(
+    #     y_disp * (nrskip + nrbin * (ypixel + 0.5) - 510. / 2)
+    # ))
+    channel = ccditem["channel"]
+    tckx = [
+        distortion[f"{channel}_splinex_t"].values,
+        distortion[f"{channel}_splinex_c"].values,
+        distortion[f"{channel}_splinex_k"].values,
+        3,
+        3,
+    ]
+    tcky = [
+        distortion[f"{channel}_spliney_t"].values,
+        distortion[f"{channel}_spliney_c"].values,
+        distortion[f"{channel}_spliney_k"].values,
+        3,
+        3,
+    ]
+    xdistortion = bisplev(y_full, x_full, tckx).squeeze()
+    ydistortion = bisplev(y_full, x_full, tcky).squeeze()
+    xdeg = np.rad2deg(np.arctan(x_disp * (x_full - 2047.0 / 2 - xdistortion)))
+    ydeg = np.rad2deg(np.arctan(y_disp * (y_full - 510.0 / 2 - ydistortion)))
     return xdeg, ydeg
 
 
@@ -849,7 +867,7 @@ def funheight_square(s, t, pos, FOV):
     """
     newp = pos + s * FOV
     newp = ICRF(Distance(m=newp).au, t=t, center=399)
-    return wgs84.subpoint(newp).elevation.m ** 2
+    return wgs84.subpoint(newp).elevation.m**2
 
 
 def findsurface(t, pos, FOV):
