@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def remove_flagged_image(df, bits_to_remove):
+def remove_flagged_images(df, bits_to_remove):
     """
     Remove all images (rows in df) that have any pixel flagged with any of the specified error bits.
 
