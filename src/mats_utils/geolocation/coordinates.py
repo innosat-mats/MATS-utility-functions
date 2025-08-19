@@ -18,9 +18,8 @@ from pyarrow import fs
 import boto3
 import pyarrow as pa  # type: ignore
 import pyarrow.dataset as ds  # type: ignore
-from pandas import DataFrame, Timestamp  # type: ignore
+from pandas import DataFrame, Timestamp, to_datetime  # type: ignore
 from skyfield import api as sfapi
-import math
 
 
 def get_deg_map(image):
@@ -60,8 +59,10 @@ def make_ref_grid(df, sample_factor=0.5, ext_factor=1.1):
     """
 
     # Get IR1 grid as a prototype
-    ir1_images = df[df['CCDSEL'] == 1]
-    assert len(ir1_images) > 0, "There are no IR1 images in the selected dataset, choose a longer one."
+    ir1_images = df[df["CCDSEL"] == 1]
+    assert (
+        len(ir1_images) > 0
+    ), "There are no IR1 images in the selected dataset, choose a longer one."
     IR1_qprime = R.from_quat(ir1_images.iloc[0]["qprime"])
     IR1_deg_map = get_deg_map(ir1_images.iloc[0])
     conv_fix, _ = R.align_vectors([[1, 0, 0], [0, 1, 0]], [[0, 0, -1], [0, -1, 0]])
@@ -71,9 +72,16 @@ def make_ref_grid(df, sample_factor=0.5, ext_factor=1.1):
     corner_ang = np.zeros((2, 2, 2))
     for i in [0, -1]:
         for j in [0, -1]:
-            r = conv_fix * IR1_qprime * R.from_euler('xyz', [0, IR1_deg_map[i, j, 1],
-                                                     IR1_deg_map[i, j, 0]], degrees=True)
-            _, corner_ang[i, j, 1], corner_ang[i, j, 0] = r.as_euler('xyz', degrees=True)
+            r = (
+                conv_fix
+                * IR1_qprime
+                * R.from_euler(
+                    "xyz", [0, IR1_deg_map[i, j, 1], IR1_deg_map[i, j, 0]], degrees=True
+                )
+            )
+            _, corner_ang[i, j, 1], corner_ang[i, j, 0] = r.as_euler(
+                "xyz", degrees=True
+            )
 
     # Construct xgrid and ygrid
     grids = []
@@ -112,8 +120,8 @@ def to_ref(df, chn, ref_map, time_corrections=None, img_var="ImageCalibrated"):
 
     # Select images for the specified channel
     CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
-    sel = df[df['CCDSEL'] == CCDSEL[chn]]
-    #if (ref_chn is not None) and (ref_chn != chn):
+    sel = df[df["CCDSEL"] == CCDSEL[chn]]
+    # if (ref_chn is not None) and (ref_chn != chn):
     #    ref_time0 = df[df['CCDSEL'] == CCDSEL[ref_chn]].iloc[0]["EXPDate"]
     #    times, ref_times = [(df[df['CCDSEL'] == CCDSEL[ch]]["EXPDate"] - ref_time0).values.astype(int) * 1e-9
     #                        for ch in [chn, ref_chn]]
@@ -136,24 +144,40 @@ def to_ref(df, chn, ref_map, time_corrections=None, img_var="ImageCalibrated"):
 
     for i in range(ref_map.shape[0]):
         for j in range(ref_map.shape[1]):
-            r = fix_rot * R.from_euler('xyz', [0, ref_map[i, j, 1], ref_map[i, j, 0]], degrees=True)
-            _, ref_angs[i, j, 1], ref_angs[i, j, 0] = r.as_euler('xyz', degrees=True)
+            r = fix_rot * R.from_euler(
+                "xyz", [0, ref_map[i, j, 1], ref_map[i, j, 0]], degrees=True
+            )
+            _, ref_angs[i, j, 1], ref_angs[i, j, 0] = r.as_euler("xyz", degrees=True)
             # pix_vec = r.apply([1, 0, 0])
             # ref_angs[i, j, :] = [np.rad2deg(np.arcsin(pix_vec[i])) for i in [1, 2]]
 
     # Interpolate
     res = np.zeros((numimg, ref_map.shape[0], ref_map.shape[1]))
     if sel.iloc[0]["ImageCalibrated"].shape != sel.iloc[0][img_var].shape:
-        raise ValueError(f"The input variable ({img_var}) must contain ndarray of the same shape as ImageCalibrated!")
+        raise ValueError(
+            f"The input variable ({img_var}) must contain ndarray of the same shape as ImageCalibrated!"
+        )
     for k in range(numimg):
         img = sel.iloc[k][img_var].T
-        interp = RegularGridInterpolator(chn_grids, img, method='cubic', bounds_error=False, fill_value=np.nan)
+        interp = RegularGridInterpolator(
+            chn_grids, img, method="cubic", bounds_error=False, fill_value=np.nan
+        )
         res[k, :, :] = interp((ref_angs[:, :, 0], ref_angs[:, :, 1]))
     return res
 
 
-def multi_channel_set(df, channels, ref_chn, max_time_shift=3, compensate_time_shift=False, ref_map=None,
-                      heights=False, angles=False, istep=10, extra_vars=[]):
+def multi_channel_set(
+    df,
+    channels,
+    ref_chn,
+    max_time_shift=3,
+    compensate_time_shift=False,
+    ref_map=None,
+    heights=False,
+    angles=False,
+    istep=10,
+    extra_vars=[],
+):
     """
     Creates a dataset of multiple channels on a reference grid.
 
@@ -182,13 +206,18 @@ def multi_channel_set(df, channels, ref_chn, max_time_shift=3, compensate_time_s
     """
 
     CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
-    ref = df[df['CCDSEL'] == CCDSEL[ref_chn]]
+    ref = df[df["CCDSEL"] == CCDSEL[ref_chn]]
     ref_time0 = ref.iloc[0]["EXPDate"]
-    times = {ch: (df[df['CCDSEL'] == CCDSEL[ch]]["EXPDate"] - ref_time0).values.astype(int) * 1e-9
-             for ch in channels}
+    times = {
+        ch: (df[df["CCDSEL"] == CCDSEL[ch]]["EXPDate"] - ref_time0).values.astype(int)
+        * 1e-9
+        for ch in channels
+    }
     idxs = {ch: [] for ch in channels}
     for i, ref_time in enumerate(times[ref_chn]):
-        if all([np.min(np.abs(times[ch] - ref_time)) < max_time_shift for ch in channels]):
+        if all(
+            [np.min(np.abs(times[ch] - ref_time)) < max_time_shift for ch in channels]
+        ):
             for ch in channels:
                 idxs[ch].append(np.argmin(np.abs(times[ch] - ref_time)))
 
@@ -232,7 +261,7 @@ def calc_nadir_orbplane_angles(df, chn, ref_map):
 
     # Select images for the specified channel
     CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
-    sel = df[df['CCDSEL'] == CCDSEL[chn]]
+    sel = df[df["CCDSEL"] == CCDSEL[chn]]
     numimg = len(sel)
 
     # Calculate angles
@@ -242,11 +271,19 @@ def calc_nadir_orbplane_angles(df, chn, ref_map):
 
     for k in range(numimg):
         align_rot = to_ref_att(sel.iloc[k]["afsGnssStateJ2000"])
-        rot = align_rot * R.from_quat(np.roll(sel.iloc[k]["afsAttitudeState"], -1)) * conv_fix.inv()
+        rot = (
+            align_rot
+            * R.from_quat(np.roll(sel.iloc[k]["afsAttitudeState"], -1))
+            * conv_fix.inv()
+        )
         for i in range(ref_map.shape[0]):
             for j in range(ref_map.shape[1]):
-                pix_vec = (rot * R.from_euler('xyz', [0, ref_map[i, j, 1],
-                                              ref_map[i, j, 0]], degrees=True)).apply([1, 0, 0])
+                pix_vec = (
+                    rot
+                    * R.from_euler(
+                        "xyz", [0, ref_map[i, j, 1], ref_map[i, j, 0]], degrees=True
+                    )
+                ).apply([1, 0, 0])
                 nadir_angle[k, i, j] = np.rad2deg(np.arccos(-pix_vec[2]))
                 orbplane_angle[k, i, j] = np.rad2deg(np.arccos(pix_vec[1])) - 90
     return nadir_angle, orbplane_angle
@@ -269,13 +306,16 @@ def common_grid_heights(df, chn, ref_map, istep=10):
 
     # Select images for the specified channel
     CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
-    sel = df[df['CCDSEL'] == CCDSEL[chn]]
+    sel = df[df["CCDSEL"] == CCDSEL[chn]]
     numimg = len(sel)
 
     ts = load.timescale()
     if istep > 1:
         # Make sparse grid
-        xs, ys = ref_map[:, int(ref_map.shape[1] / 2), 0], ref_map[int(ref_map.shape[0] / 2), :, 1]
+        xs, ys = (
+            ref_map[:, int(ref_map.shape[1] / 2), 0],
+            ref_map[int(ref_map.shape[0] / 2), :, 1],
+        )
         sxs, sys = xs[slice(0, len(xs), istep)], ys[slice(0, len(ys), istep)]
         if sxs[-1] != xs[-1]:
             sxs = np.append(sxs, xs[-1])
@@ -289,12 +329,17 @@ def common_grid_heights(df, chn, ref_map, istep=10):
     heights_sp = np.empty((numimg, ref_map_sp.shape[0], ref_map_sp.shape[1]))
     conv_fix, _ = R.align_vectors([[1, 0, 0], [0, 1, 0]], [[0, 0, -1], [0, -1, 0]])
     for k in range(numimg):
-        att = R.from_quat(np.roll(sel.iloc[k]['afsAttitudeState'], -1)) * conv_fix
-        ecipos = sel.iloc[k]['afsGnssStateJ2000'][0:3]
-        t = ts.from_datetime(sel.iloc[k]['EXPDate'])
+        att = R.from_quat(np.roll(sel.iloc[k]["afsAttitudeState"], -1)) * conv_fix
+        ecipos = sel.iloc[k]["afsGnssStateJ2000"][0:3]
+        t = ts.from_datetime(sel.iloc[k]["EXPDate"])
         for ix, iy in np.ndindex(ref_map_sp.shape[:2]):
-            ecivec = att.apply(R.from_euler('XYZ', [0, ref_map_sp[ix, iy, 1], ref_map_sp[ix, iy, 0]],
-                                            degrees=True).apply([1, 0, 0]))
+            ecivec = att.apply(
+                R.from_euler(
+                    "XYZ",
+                    [0, ref_map_sp[ix, iy, 1], ref_map_sp[ix, iy, 0]],
+                    degrees=True,
+                ).apply([1, 0, 0])
+            )
             res = findtangent(t, ecipos, ecivec)
             heights_sp[k, ix, iy] = res.fun
 
@@ -303,7 +348,9 @@ def common_grid_heights(df, chn, ref_map, istep=10):
 
     heights = np.empty((numimg, ref_map.shape[0], ref_map.shape[1]))
     for k in range(numimg):
-        interp = RegularGridInterpolator([sxs, sys], heights_sp[k, :, :], method='cubic')
+        interp = RegularGridInterpolator(
+            [sxs, sys], heights_sp[k, :, :], method="cubic"
+        )
         heights[k, :, :] = interp((ref_map[:, :, 0], ref_map[:, :, 1]))
     return heights * 1e-3
 
@@ -344,13 +391,21 @@ def get_temporal_rotation(df, data_chn, ref_chn):
 
     # Get timestamps and sat. pointing for data data channel and ref. channel images within selection
     CCDSEL = {"IR1": 1, "IR2": 4, "IR3": 3, "IR4": 2, "UV1": 5, "UV2": 6}
-    sat_att, data_time, ref_time = [df[df['CCDSEL'] == CCDSEL[chn]][var] for chn, var in
-                                    [(data_chn, "afsAttitudeState"), (data_chn, "EXPDate"), (ref_chn, "EXPDate")]]
+    sat_att, data_time, ref_time = [
+        df[df["CCDSEL"] == CCDSEL[chn]][var]
+        for chn, var in [
+            (data_chn, "afsAttitudeState"),
+            (data_chn, "EXPDate"),
+            (ref_chn, "EXPDate"),
+        ]
+    ]
     assert len(ref_time) > 2
     assert len(data_time) > 2
     ref_time_og = ref_time
     ref_tp = ref_time[0]
-    data_time, ref_time = [(arr - ref_tp).total_seconds() for arr in [data_time, ref_time]]
+    data_time, ref_time = [
+        (arr - ref_tp).total_seconds() for arr in [data_time, ref_time]
+    ]
 
     # Check that both channels have the same temporal cadence
     data_step, ref_step = [np.diff(arr).mean() for arr in [data_time, ref_time]]
@@ -369,12 +424,6 @@ def get_temporal_rotation(df, data_chn, ref_chn):
             trots.append(R.from_quat(sat_att[i]).inv() * rots(ref_time[idx]))
             times.append(ref_time_og[idx])
     return trots, times
-
-
-def funheight(s, t, pos, FOV):
-    newp = pos + s * FOV
-    newp = ICRF(Distance(m=newp).au, t=t, center=399)
-    return wgs84.subpoint(newp).elevation.m
 
 
 def meanquaternion(start_date: datetime, deltat: timedelta):
@@ -397,82 +446,254 @@ def meanquaternion(start_date: datetime, deltat: timedelta):
         secret_key=credentials.secret_key,
         access_key=credentials.access_key,
         region=session.region_name,
-        session_token=credentials.token)
+        session_token=credentials.token,
+    )
 
     dataset = ds.dataset(
         "ops-platform-level1a-v0.3/ReconstructedData",
-        filesystem=s3,)
+        filesystem=s3,
+    )
     # if start_date.tzinfo == None:
     #    start_date = start_date.replace(tzinfo=timezone.utc)
     stop_date = start_date + deltat
     table = dataset.to_table(
-        filter=(
-            ds.field('time') >= Timestamp(start_date)
-        ) & (
-            ds.field('time') <= Timestamp(stop_date)
-        )
+        filter=(ds.field("time") >= Timestamp(start_date))
+        & (ds.field("time") <= Timestamp(stop_date))
     )
     df = table.to_pandas()
     return np.vstack(df.afsAttitudeState).mean(axis=0)
+
+
+def funheight(s, t, pos, FOV):
+    newp = pos + s * FOV
+    newp = ICRF(Distance(m=newp).au, t=t, center=399)
+    return wgs84.subpoint(newp).elevation.m
 
 
 def findtangent(t, pos, FOV, bracket=(1e5, 3e5)):
     res = minimize_scalar(funheight, args=(t, pos, FOV), bracket=bracket)
     return res
 
-def targetheight(s,t,pos,FOV,height):
-    return((funheight(s,t,pos,FOV)-height)**2)
 
-def findheight(t, pos, FOV, height,  bracket=(1e5, 3e5)):
-    res = minimize_scalar(targetheight, args=(t, pos, FOV, height), bounds= bracket)
+def targetheight(s, t, pos, FOV, height):
+    return (funheight(s, t, pos, FOV) - height) ** 2
+
+
+def findheight(t, pos, FOV, height, bracket=(1e5, 3e5)):
+    res = minimize_scalar(targetheight, args=(t, pos, FOV, height), bounds=bracket)
     return res
 
-def col_heights(ccditem, x, nheights=None, spline=False, splineTPpos=False):
+
+def col_heights(
+    ccditem,
+    x,
+    nheights=None,
+    spline=False,
+    splineTPpos=False,
+    THandECEF=False,
+    splineTHandECEF=False,
+):
     if nheights == None:
-        nheights = ccditem['NROW']
-    d = ccditem['EXPDate']
+        nheights = ccditem["NROW"]
+    d = ccditem["EXPDate"]
     ts = load.timescale()
     t = ts.from_datetime(d)
-    ecipos = ccditem['afsGnssStateJ2000'][0:3]
-    q = ccditem['afsAttitudeState']
+    ecipos = ccditem["afsGnssStateJ2000"][0:3]
+    q = ccditem["afsAttitudeState"]
     quat = R.from_quat(np.roll(q, -1))
-    qprime = R.from_quat(ccditem['qprime'])
-    ypixels = np.linspace(0, ccditem['NROW'], nheights)
+    qprime = R.from_quat(ccditem["qprime"])
+    ypixels = np.linspace(0, ccditem["NROW"], nheights)
     ths = np.zeros_like(ypixels)
     TPpos = np.zeros((len(ypixels), 3))
     xdeg, ydeg = pix_deg(ccditem, x, ypixels)
     for iy, y in enumerate(ydeg):
-        los = R.from_euler('XYZ', [0, y, xdeg], degrees=True).apply([1, 0, 0])
+        los = R.from_euler("XYZ", [0, y, xdeg], degrees=True).apply([1, 0, 0])
         ecivec = quat.apply(qprime.apply(los))
         res = findtangent(t, ecipos, ecivec)
-        TPpos[iy, :] = ecipos+res.x*ecivec
+        TPpos[iy, :] = ecipos + res.x * ecivec
         ths[iy] = res.fun
     if spline:
         return CubicSpline(ypixels, ths)
     elif splineTPpos:
         return CubicSpline(ypixels, TPpos)
+    elif THandECEF:
+        return ths, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m.T
+    elif splineTHandECEF:
+        return CubicSpline(
+            ypixels,
+            np.vstack(
+                [TPpos, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m]
+            ),
+        )
+    else:
+        return ths
+
+
+def pix_deg_xr(ccditem, xpixel, ypixel):
+    """
+    Function to get the x and y angle from a pixel relative to the center of the CCD
+
+    Arguments
+    ----------
+    ccditem : CCDitem
+        measurement
+    xpixel : int or array[int]
+        x coordinate of the pixel(s) in the image
+    ypixel : int or array[int]
+        y coordinate of the pixel(s) in the image
+
+    Returns
+    -------
+    xdeg : float or array[float]
+        angular deviation along the x axis in degrees (relative to the center of the CCD)
+    ydeg : float or array[float]
+        angular deviation along the y axis in degrees (relative to the center of the CCD)
+    """
+
+    h = 6.9  # height of the CCD in mm
+    d = 27.6  # width of the CCD in mm
+
+    # selecting effective focal length
+    if (ccditem["channel"].values) == "NADIR":  # NADIR channel
+        f = 50.6  # effective focal length in mm
+    else:  # LIMB channels
+        f = 261
+
+    ncskip = ccditem["NCSKIP"].values
+    try:
+        ncbin = ccditem["NCBIN CCDColumns"].values
+    except:
+        ncbin = ccditem["NCBINCCDColumns"].values
+    nrskip = ccditem["NRSKIP"].values
+    nrbin = ccditem["NRBIN"].values
+    ncol = ccditem["NCOL"].values  # number of columns in the image MINUS 1
+
+    y_disp = h / (f * 511)
+    x_disp = d / (f * 2048)
+
+    if (ccditem["channel"].values) in ["IR1", "IR3", "UV1", "UV2", "NADIR"]:
+        xdeg = np.rad2deg(
+            np.arctan(
+                x_disp
+                * (
+                    (2048 - ncskip - (ncol + 1) * ncbin + ncbin * (xpixel + 0.5))
+                    - 2047.0 / 2
+                )
+            )
+        )
+    else:
+        xdeg = np.rad2deg(
+            np.arctan(x_disp * (ncskip + ncbin * (xpixel + 0.5) - 2047.0 / 2))
+        )
+
+    ydeg = np.rad2deg(np.arctan(y_disp * (nrskip + nrbin * (ypixel + 0.5) - 510.0 / 2)))
+
+    return xdeg, ydeg
+
+
+def col_heights_xr(
+    ccditem,
+    x,
+    nheights=None,
+    spline=False,
+    splineTPpos=False,
+    THandECEF=False,
+    splineTHandECEF=False,
+):
+    if nheights == None:
+        nheights = ccditem["NROW"].values
+    d = to_datetime(ccditem["time"].values).tz_localize("UTC").to_pydatetime()
+    ts = load.timescale()
+    t = ts.from_datetime(d)
+    ecipos = ccditem["afsGnssStateJ2000"].values[0:3]
+    q = ccditem["afsAttitudeState"].values
+    quat = R.from_quat(np.roll(q, -1))
+    qprime = R.from_quat(ccditem["qprime"].values)
+    ypixels = np.linspace(0, ccditem["NROW"].values, nheights)
+    ths = np.zeros_like(ypixels)
+    TPpos = np.zeros((len(ypixels), 3))
+    xdeg, ydeg = pix_deg_xr(ccditem, x, ypixels)
+    for iy, y in enumerate(ydeg):
+        los = R.from_euler("XYZ", [0, y, xdeg], degrees=True).apply([1, 0, 0])
+        ecivec = quat.apply(qprime.apply(los))
+        res = findtangent(t, ecipos, ecivec)
+        TPpos[iy, :] = ecipos + res.x * ecivec
+        ths[iy] = res.fun
+    if spline:
+        return CubicSpline(ypixels, ths)
+    elif splineTPpos:
+        return CubicSpline(ypixels, TPpos)
+    elif THandECEF:
+        return ths, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m.T
+    elif splineTHandECEF:
+        return CubicSpline(
+            ypixels,
+            np.vstack(
+                [TPpos, ICRF(Distance(m=TPpos.T).au, t=t, center=399).frame_xyz(itrs).m]
+            ),
+        )
     else:
         return ths
 
 
 def heights(ccditem):
-    ths = np.zeros([ccditem['NROW'], ccditem['NCOL']+1])
-    for col in range(ccditem['NCOL']+1):
+    ths = np.zeros([ccditem["NROW"], ccditem["NCOL"] + 1])
+    for col in range(ccditem["NCOL"] + 1):
         ths[:, col] = col_heights(ccditem, col)
     return ths
 
-def fast_heights(ccditem, nx=5, ny=10):
-    xpixels = np.linspace(0, ccditem['NCOL'], nx)
-    ypixels = np.linspace(0, ccditem['NROW'], ny)
-    ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
-    for i,col in enumerate(xpixels): 
-        ths_tmp[i,:]=col_heights(ccditem,col,ny*2,spline=True)(ypixels)
-    interpolator=RegularGridInterpolator((xpixels,ypixels),ths_tmp, method = 'cubic')  
-    fullxgrid=np.arange(ccditem['NCOL']+1)  
-    fullygrid=np.arange(ccditem['NROW'])
-    XX,YY=np.meshgrid(fullxgrid,fullygrid, sparse=True)
-    return interpolator((XX,YY))
 
+def fast_heights(ccditem, nx=5, ny=10, retTHandECEF=False, retInterp=False):
+    xpixels = np.linspace(0, ccditem["NCOL"], nx)
+    ypixels = np.linspace(0, ccditem["NROW"] - 1, ny)
+    if retTHandECEF:
+        ths_tmp = np.zeros([nx, ny, 4])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :, 0], ths_tmp[i, :, 1:] = col_heights(
+                ccditem, col, ny, THandECEF=True
+            )
+    else:
+        ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :] = col_heights(ccditem, col, ny)
+    interpolator = RegularGridInterpolator((xpixels, ypixels), ths_tmp, method="cubic")
+    fullxgrid = np.arange(ccditem["NCOL"] + 1)
+    fullygrid = np.arange(ccditem["NROW"])
+    XX, YY = np.meshgrid(fullxgrid, fullygrid, sparse=True)
+    if retInterp:
+        return interpolator
+    else:
+        return interpolator((XX, YY))
+
+
+def fast_heights_xr(
+    ccditem,
+    nx=5,
+    ny=10,
+    retTHandECEF=False,
+    retInterp=False,
+):
+    xpixels = np.linspace(0, ccditem["NCOL"].values, nx)
+    ypixels = np.linspace(0, ccditem["NROW"].values - 1, ny)
+    ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
+    if retTHandECEF:
+        ths_tmp = np.zeros([nx, ny, 4])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :, 0], ths_tmp[i, :, 1:] = col_heights_xr(
+                ccditem, col, ny, THandECEF=True
+            )
+    else:
+        ths_tmp = np.zeros([xpixels.shape[0], ypixels.shape[0]])
+        for i, col in enumerate(xpixels):
+            ths_tmp[i, :] = col_heights_xr(ccditem, col, ny)
+    interpolator = RegularGridInterpolator((xpixels, ypixels), ths_tmp, method="cubic")
+    fullxgrid = np.arange(ccditem["NCOL"].values + 1)
+    fullygrid = np.arange(ccditem["NROW"].values)
+    XX, YY = np.meshgrid(fullxgrid, fullygrid, sparse=True)
+    if retInterp:
+        return interpolator
+    else:
+        return interpolator((XX, YY))
 
 
 def satpos(ccditem):
@@ -488,14 +709,21 @@ def satpos(ccditem):
         satheight: Altitude in metres
 
     """
-    ecipos= ccditem['afsGnssStateJ2000'][0: 3]
-    d = ccditem['EXPDate']
-    ts= load.timescale()
+    ecipos = ccditem["afsGnssStateJ2000"][0:3]
+    d = ccditem["EXPDate"]
+    ts = load.timescale()
     t = ts.from_datetime(d)
-    satpo = Geocentric(position_au=Distance(
-        m=ecipos).au, t=t)
-    satlat, satlong, satheight = satpo.frame_latlon(itrs)
-    return (satlat.degrees, satlong.degrees, satheight.m)
+    satpo = Geocentric(position_au=Distance(m=ecipos).au, t=t)
+    # Assuming wgs84 and satpo are already defined
+    position = wgs84.geographic_position_of(satpo)
+    # Extract latitude, longitude, and elevation
+    satlat = position.latitude.degrees
+    satlon = position.longitude.degrees
+    satheight = position.elevation.m
+
+    # satlat, satlon, satheight = satpo.frame_latlon(itrs)
+    return (satlat, satlon, satheight)
+
 
 def TPpos(ccditem):
     """
@@ -511,14 +739,20 @@ def TPpos(ccditem):
         TPheight: Altitude in metres
 
     """
-    eci= ccditem['afsTangentPointECI']
-    d = ccditem['EXPDate']
-    ts= load.timescale()
+    eci = ccditem["afsTangentPointECI"]
+    d = ccditem["EXPDate"]
+    ts = load.timescale()
     t = ts.from_datetime(d)
-    TPpos = Geocentric(position_au=Distance(
-        m=eci).au, t=t)
-    TPlat, TPlong, TPheight = TPpos.frame_latlon(itrs)
-    return (TPlat.degrees, TPlong.degrees, TPheight.m)
+    TPpos = Geocentric(position_au=Distance(m=eci).au, t=t)
+    # Assuming wgs84 and satpo are already defined
+    position = wgs84.geographic_position_of(TPpos)
+    # Extract latitude, longitude, and elevation
+    TPlat = position.latitude.degrees
+    TPlon = position.longitude.degrees
+    TPheight = position.elevation.m
+    # TPlat, TPlon, TPheight = TPpos.frame_latlon(itrs)
+    return (TPlat, TPlon, TPheight)
+
 
 def angles(ccditem):
     """
@@ -535,64 +769,68 @@ def angles(ccditem):
         tpLT: Local time at the TP (string)
 
     """
-    planets= load('de421.bsp')
-    earth, sun, moon = planets['earth'], planets['sun'], planets['moon']
+    planets = load("de421.bsp")
+    earth, sun, moon = planets["earth"], planets["sun"], planets["moon"]
 
-    d = ccditem['EXPDate']
-    ts= load.timescale()
+    d = ccditem["EXPDate"]
+    ts = load.timescale()
     t = ts.from_datetime(d)
     satlat, satlon, satheight = satpos(ccditem)
-    TPlat, TPlon, TPheight= TPpos(ccditem)
-    sat_pos= earth + wgs84.latlon(satlat, satlon, elevation_m=satheight)
-    sundir= sat_pos.at(t).observe(sun).apparent()
-    obs= sundir.altaz()
-    nadir_sza= (90-obs[0].degrees)  # nadir solar zenith angle
-    TP_pos= earth + wgs84.latlon(TPlat, TPlon, elevation_m=TPheight)
-    tpLT= ((d+DT.timedelta(seconds=TPlon/15*60*60)).strftime('%H:%M:%S'))  # 15*60*60 comes from degrees per hour
+    TPlat, TPlon, TPheight = TPpos(ccditem)
+    sat_pos = earth + wgs84.latlon(satlat, satlon, elevation_m=satheight)
+    sundir = sat_pos.at(t).observe(sun).apparent()
+    obs = sundir.altaz()
+    nadir_sza = 90 - obs[0].degrees  # nadir solar zenith angle
+    TP_pos = earth + wgs84.latlon(TPlat, TPlon, elevation_m=TPheight)
+    tpLT = (d + DT.timedelta(seconds=TPlon / 15 * 60 * 60)).strftime(
+        "%H:%M:%S"
+    )  # 15*60*60 comes from degrees per hour
 
-    FOV= (TP_pos-sat_pos).at(t).position.m
-    FOV= FOV/norm(FOV)
-    sundir= TP_pos.at(t).observe(sun).apparent()
-    obs= sundir.altaz()
-    TPsza = (90-obs[0].degrees)
-    TPssa = (np.rad2deg(np.arccos(np.dot(-FOV,sundir.position.m / norm(sundir.position.m)))))
+    FOV = (TP_pos - sat_pos).at(t).position.m
+    FOV = FOV / norm(FOV)
+    sundir = TP_pos.at(t).observe(sun).apparent()
+    obs = sundir.altaz()
+    TPsza = 90 - obs[0].degrees
+    TPssa = np.rad2deg(
+        np.arccos(np.dot(-FOV, sundir.position.m / norm(sundir.position.m)))
+    )
     return nadir_sza, TPsza, TPssa, tpLT
 
 
 def deg_map(ccditem):
     """
-    Function to get the x and y angular deviation map for each pixel of the image. 
+    Function to get the x and y angular deviation map for each pixel of the image.
     The deviation is given in degrees relative to the center of the CCD
-    
-    
+
+
     Arguments
     ----------
     ccditem : CCDitem
         measurement
-            
+
     Returns
     -------
     xmap : array[float]
         angular deviation map along the x axis in degrees (relative to the center of the CCD)
     ymap : array[float]
-        angular deviation map along the y axis in degrees (relative to the center of the CCD) 
-    """    
-    im = ccditem['IMAGE']
+        angular deviation map along the y axis in degrees (relative to the center of the CCD)
+    """
+    im = ccditem["IMAGE"]
 
-    a,b = np.shape(im)
+    a, b = np.shape(im)
     X = range(b)
     Y = range(a)
-    xpixel, ypixel = np.meshgrid(X,Y)
-    xmap,ymap = pix_deg(ccditem, xpixel, ypixel)
-    return xmap,ymap
+    xpixel, ypixel = np.meshgrid(X, Y)
+    xmap, ymap = pix_deg(ccditem, xpixel, ypixel)
+    return xmap, ymap
 
 
 def funheight_square(s, t, pos, FOV):
     """
     Function to get the distance between a point at position pos + s*FOV and the surface of the Geoid (wgs84 model),
      at time t.
-    
-    
+
+
     Arguments
     ----------
     s : float
@@ -603,7 +841,7 @@ def funheight_square(s, t, pos, FOV):
         position in space where the line starts (~position of MATS). Array of 3 position coordinates in m in the ICRF reference frame
     FOV : array[float]
         angle of the line (direction of the line), array of 3 elements in the IFRC reference frame
-            
+
     Returns
     -------
     elevation**2 : float
@@ -611,15 +849,15 @@ def funheight_square(s, t, pos, FOV):
     """
     newp = pos + s * FOV
     newp = ICRF(Distance(m=newp).au, t=t, center=399)
-    return wgs84.subpoint(newp).elevation.m**2
+    return wgs84.subpoint(newp).elevation.m ** 2
 
 
 def findsurface(t, pos, FOV):
     """
     Function to get the distance between a point at position pos and the surface of the Geoid (wgs84 model),
      at time t, along the line oriented along the FOV direction and starting at position pos
-    
-    
+
+
     Arguments
     ----------
     t : skyfield.timelib.Time
@@ -628,22 +866,22 @@ def findsurface(t, pos, FOV):
         position in space where the line starts (~position of MATS). Array of 3 position coordinates in m in the ICRF reference frame
     FOV : array[float]
         angle of the line (direction of the line), array of 3 elements in the IFRC reference frame
-            
+
     Returns
     -------
     res : OptimizeResult object
-        res.x is the distance found in m   
+        res.x is the distance found in m
     """
     res = minimize_scalar(funheight_square, args=(t, pos, FOV), bracket=(3e5, 8e5))
     return res
 
 
-def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic'):
+def NADIR_geolocation(ccditem, x_sample=None, y_sample=None, interp_method="quintic"):
     """
     Function to get the latitude, longitude and solar zenith angle map for each pixel of the image.
     The values are calculated for some points and then interpolated for each pixel.
     WARNING : no images are flipped
-    
+
     Arguments
     ----------
     ccditem : CCDitem
@@ -655,7 +893,7 @@ def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic
     interp_method :
         interpolation method : 'linear', 'nearest', 'slinear', 'cubic', 'quintic' and 'pchip'
         WARNING : choose the minimum x and y sampling according to the interpolation method
-            
+
     Returns
     -------
     lat_map : array[float]
@@ -665,107 +903,145 @@ def NADIR_geolocation(ccditem,x_sample=None,y_sample=None,interp_method='quintic
     sza_map : array[float]
         map giving the solar zenith angle for each pixel in the image
     """
-    im = ccditem['IMAGE']
-    x_deg_map, y_deg_map = deg_map(ccditem) # creating angle deviation map for each pixel (degrees)
-    a,b = np.shape(im)
+    im = ccditem["IMAGE"]
+    x_deg_map, y_deg_map = deg_map(
+        ccditem
+    )  # creating angle deviation map for each pixel (degrees)
+    a, b = np.shape(im)
 
-    metoOHB  = R.from_matrix([[0,0,-1],[0,-1,0],[-1,0,0]])
-    ts=sfapi.load.timescale()
-    t=ts.from_datetime((ccditem['EXPDate']+timedelta(seconds=ccditem['TEXPMS']/(2*1000))).replace(tzinfo=sfapi.utc)) # exposure time (middle of the exposure timespan)  
-    q=ccditem.afsAttitudeState
-    quat=R.from_quat(np.roll(q,-1)) # quaternion of MATS attitude (for the satellite frame) 
-    pos=ccditem.afsGnssStateJ2000[0:3] # position of MATS
-    
-    if x_sample == None or x_sample >= b: # no upsampling
+    metoOHB = R.from_matrix([[0, 0, -1], [0, -1, 0], [-1, 0, 0]])
+    ts = sfapi.load.timescale()
+    t = ts.from_datetime(
+        (
+            ccditem["EXPDate"] + timedelta(seconds=ccditem["TEXPMS"] / (2 * 1000))
+        ).replace(tzinfo=sfapi.utc)
+    )  # exposure time (middle of the exposure timespan)
+    q = ccditem.afsAttitudeState
+    quat = R.from_quat(
+        np.roll(q, -1)
+    )  # quaternion of MATS attitude (for the satellite frame)
+    pos = ccditem.afsGnssStateJ2000[0:3]  # position of MATS
+
+    if x_sample == None or x_sample >= b:  # no upsampling
         x_sample = b
-    if y_sample == None or y_sample >= a: # no upsampling
+    if y_sample == None or y_sample >= a:  # no upsampling
         y_sample = a
-    
+
     interpolation = True
-    if x_sample == b and y_sample == a: # if both axis have enough sampling points, there is no interpolation
+    if (
+        x_sample == b and y_sample == a
+    ):  # if both axis have enough sampling points, there is no interpolation
         interpolation = False
 
-    xd = np.linspace(np.min(x_deg_map),np.max(x_deg_map),x_sample) # sampled angles on the x axis
-    yd = np.linspace(np.min(y_deg_map),np.max(y_deg_map),y_sample) # sampled angles on the y axis
-    x_deg_sample,y_deg_sample = np.meshgrid(xd,yd)
+    xd = np.linspace(
+        np.min(x_deg_map), np.max(x_deg_map), x_sample
+    )  # sampled angles on the x axis
+    yd = np.linspace(
+        np.min(y_deg_map), np.max(y_deg_map), y_sample
+    )  # sampled angles on the y axis
+    x_deg_sample, y_deg_sample = np.meshgrid(xd, yd)
 
     if not interpolation:
-        y_deg_sample,x_deg_sample = y_deg_map,x_deg_map # the sampled angles are the calculated angles for each pixel
+        y_deg_sample, x_deg_sample = (
+            y_deg_map,
+            x_deg_map,
+        )  # the sampled angles are the calculated angles for each pixel
 
     # sampled latitude, longitude and solar zenith angle values
-    LAT = np.zeros((y_sample,x_sample))
-    LON = np.zeros((y_sample,x_sample))
-    SZA = np.zeros((y_sample,x_sample))
+    LAT = np.zeros((y_sample, x_sample))
+    LON = np.zeros((y_sample, x_sample))
+    SZA = np.zeros((y_sample, x_sample))
 
     # computing the latitude, longitude and solar zenith angles at the intersection of the line of sight and the earth surface
     # only the line of sights from some sampled pixels are computed
     for i in range(y_sample):
         for j in range(x_sample):
-                # angular transformations
-                # rotation from the line of sight of the LIMB imager to the line of sight of the NADIR pixel
-                angle = R.from_euler('XYZ', [x_deg_sample[i,j],-(90-24)+y_deg_sample[i,j],0] , degrees=True).apply([1, 0, 0])
-                FOV = quat.apply(metoOHB.apply(angle)) # attitude state for the line of sight of the NADIR pixel    
-                # finding the distance between the point pos and the Geoid along the line of sight
-                res = findsurface(t,pos,FOV)
-                newp = pos + res.x * FOV 
-                newp = ICRF(Distance(m=newp).au, t=t, center=399) # point at the intersection between the line of sight at the pixel and the Geoid surface
-                LAT[i,j]=wgs84.subpoint(newp).latitude.degrees # latitude of the point
-                LON[i,j]=wgs84.subpoint(newp).longitude.degrees # longitude of the point E [-180,+180] 
+            # angular transformations
+            # rotation from the line of sight of the LIMB imager to the line of sight of the NADIR pixel
+            angle = R.from_euler(
+                "XYZ",
+                [x_deg_sample[i, j], -(90 - 24) + y_deg_sample[i, j], 0],
+                degrees=True,
+            ).apply([1, 0, 0])
+            FOV = quat.apply(
+                metoOHB.apply(angle)
+            )  # attitude state for the line of sight of the NADIR pixel
+            # finding the distance between the point pos and the Geoid along the line of sight
+            res = findsurface(t, pos, FOV)
+            newp = pos + res.x * FOV
+            newp = ICRF(
+                Distance(m=newp).au, t=t, center=399
+            )  # point at the intersection between the line of sight at the pixel and the Geoid surface
+            LAT[i, j] = wgs84.subpoint(newp).latitude.degrees  # latitude of the point
+            LON[i, j] = wgs84.subpoint(
+                newp
+            ).longitude.degrees  # longitude of the point E [-180,+180]
 
-                # finding the solar zenith angle of the point
-                planets = sfapi.load('de421.bsp')
-                earth=planets['Earth']
-                sun=planets['Sun']
-                SZA[i,j]=90-((earth+wgs84.subpoint(newp)).at(t).observe(sun).apparent().altaz())[0].degrees
-    
+            # finding the solar zenith angle of the point
+            planets = sfapi.load("de421.bsp")
+            earth = planets["Earth"]
+            sun = planets["Sun"]
+            SZA[i, j] = (
+                90
+                - (
+                    (earth + wgs84.subpoint(newp)).at(t).observe(sun).apparent().altaz()
+                )[0].degrees
+            )
+
     # to get a continuous longitudinal field
-    if np.max(LON)-np.min(LON) > 300: # this condition is met if points are on both sides of the -180/+180 deg line
-        LON = np.where(LON<0,LON+360,LON)
+    if (
+        np.max(LON) - np.min(LON) > 300
+    ):  # this condition is met if points are on both sides of the -180/+180 deg line
+        LON = np.where(LON < 0, LON + 360, LON)
 
-    if interpolation: # interpolating the results along all the pixels
+    if interpolation:  # interpolating the results along all the pixels
         # each interpolator object takes as argument an y and x angular deviation and gives a lat/lon/sza value
-        interp_lat = RegularGridInterpolator((yd,xd),LAT,interp_method,bounds_error=False,fill_value=None) 
-        interp_lon = RegularGridInterpolator((yd,xd),LON,interp_method,bounds_error=False,fill_value=None)
-        interp_sza = RegularGridInterpolator((yd,xd),SZA,interp_method,bounds_error=False,fill_value=None)
+        interp_lat = RegularGridInterpolator(
+            (yd, xd), LAT, interp_method, bounds_error=False, fill_value=None
+        )
+        interp_lon = RegularGridInterpolator(
+            (yd, xd), LON, interp_method, bounds_error=False, fill_value=None
+        )
+        interp_sza = RegularGridInterpolator(
+            (yd, xd), SZA, interp_method, bounds_error=False, fill_value=None
+        )
         # interpolating on the real angular deviations for each pixel
-        lat_map = interp_lat((y_deg_map,x_deg_map))
-        lon_map = interp_lon((y_deg_map,x_deg_map))
-        sza_map = interp_sza((y_deg_map,x_deg_map))
-    else: # no interpolation       
+        lat_map = interp_lat((y_deg_map, x_deg_map))
+        lon_map = interp_lon((y_deg_map, x_deg_map))
+        sza_map = interp_sza((y_deg_map, x_deg_map))
+    else:  # no interpolation
         lat_map = LAT
         lon_map = LON
         sza_map = SZA
 
-    return(lat_map,lon_map,sza_map)
-
+    return (lat_map, lon_map, sza_map)
 
 
 def nadir_az(ccditem):
     """
-    Function giving the solar azimuth angle for the nadir imager  
-   
+    Function giving the solar azimuth angle for the nadir imager
+
     Arguments:
-        ccditem 
+        ccditem
     Returns:
         nadir_az: float
-            solar azimuth angle at nadir imager (degrees)       
-        
+            solar azimuth angle at nadir imager (degrees)
+
     """
-    planets=load('de421.bsp')
-    earth,sun,moon= planets['earth'], planets['sun'],planets['moon']
-   
-     
-    d = ccditem['EXPDate']
-    ts =load.timescale()
+    planets = load("de421.bsp")
+    earth, sun, moon = planets["earth"], planets["sun"], planets["moon"]
+
+    d = ccditem["EXPDate"]
+    ts = load.timescale()
     t = ts.from_datetime(d)
     satlat, satlon, satheight = satpos(ccditem)
     TPlat, TPlon, TPheight = TPpos(ccditem)
-    
-    sat_pos=earth + wgs84.latlon(satlat, satlon, elevation_m=satheight)
-    TP_pos=earth + wgs84.latlon(TPlat, TPlon, elevation_m=TPheight)
-    sundir=sat_pos.at(t).observe(sun).apparent()
+
+    sat_pos = earth + wgs84.latlon(satlat, satlon, elevation_m=satheight)
+    TP_pos = earth + wgs84.latlon(TPlat, TPlon, elevation_m=TPheight)
+    sundir = sat_pos.at(t).observe(sun).apparent()
     limbdir = TP_pos.at(t) - sat_pos.at(t)
     obs_limb = limbdir.altaz()
-    obs_sun=sundir.altaz()
-    nadir_az = (obs_sun[1].degrees - obs_limb[1].degrees) #nadir solar azimuth angle    
+    obs_sun = sundir.altaz()
+    nadir_az = obs_sun[1].degrees - obs_limb[1].degrees  # nadir solar azimuth angle
     return nadir_az
