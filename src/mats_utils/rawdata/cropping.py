@@ -177,6 +177,8 @@ def set_crop_settings(channel, cropversion):
                 NCOL=8
                 NCBINFPGA=0
 
+    if NCBINFPGA==0:
+        NCBINFPGA=1
     return NRSKIP, NRBIN, NROW, NCSKIP, NCBIN, NCOL, NCBINFPGA
 
 def make_crop_filter(channel, cropversion):

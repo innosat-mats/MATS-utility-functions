@@ -411,8 +411,8 @@ def plot_image(CCD, ax=None, fig=None, outpath=None,
     if (channel in flipped_CCDs) and (lvl == 'L1a'):
         nrows = np.arange(0, CCD['NROW'])
         ncols = np.arange(0, CCD['NCOL']+1)
-        img = ax.pcolorfast(np.flip(ncols), nrows,
-                            image, cmap=cmap,
+
+        img = ax.pcolorfast(np.fliplr(image), cmap=cmap,
                             vmax=vmax, vmin=vmin)
 
     else:
@@ -516,7 +516,8 @@ def simple_plot(CCD_dataframe, outdir, nstd=2, cmap='magma',
 
 
 def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
-               ranges=None, optimal_range=False, format='png', field_of_choise='None', plothistogram=True, clim=None, useplotCCDimage=False):
+               ranges=None, optimal_range=False, format='png', field_of_choise='None', 
+               plothistogram=True, printpositioninfo=True, clim=None, useplotCCDimage=False):
     """
        Generates plots from (several) CCD items: image, histogram and map.
        Figures will be saved in subfolders of outdir by CCDSEL.
@@ -614,13 +615,14 @@ def orbit_plot(CCD_dataframe, outdir, nstd=2, nbins = None, cmap='magma',
                 if clim is not None:
                     img.set_clim(clim)
 
-                # print out additional information
-                plt.figtext(0.15, 0.03, f'nadirSZA: {nadir_sza:.6}',
-                            fontsize=10)
-                plt.figtext(0.15, 0.06, f'tpLT: {TPlt}',
-                            fontsize=10)
-                plt.figtext(0.35, 0.03, f'tpSZA: {TPsza:.6}', fontsize=10)
-                plt.figtext(0.35, 0.06, f'tpSSA: {TPssa:.6}', fontsize=10)
+                if printpositioninfo:
+                    # print out additional information
+                    plt.figtext(0.15, 0.03, f'nadirSZA: {nadir_sza:.6}',
+                                fontsize=10)
+                    plt.figtext(0.15, 0.06, f'tpLT: {TPlt}',
+                                fontsize=10)
+                    plt.figtext(0.35, 0.03, f'tpSZA: {TPsza:.6}', fontsize=10)
+                    plt.figtext(0.35, 0.06, f'tpSSA: {TPssa:.6}', fontsize=10)
 
                 if plothistogram:
                     # plot histogram
