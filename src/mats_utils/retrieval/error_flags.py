@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def remove_flagged_images(df, bits_to_remove):
+def remove_flagged_images(df, bits_to_remove, return_mask=False):
     """
     Remove all images (rows in df) that have any pixel flagged with any of the specified error bits.
 
@@ -11,11 +11,15 @@ def remove_flagged_images(df, bits_to_remove):
         DataFrame containing the calibration data. Must include a 'CalibrationErrors' column.
     bits_to_remove : list of int
         List of bit numbers to check for error flags (e.g., [8, 9, 12]).
+    return_mask : bool, optional
+        If True, also return the boolean mask indicating which images were removed.
 
     Returns
     -------
     df_clean : pandas.DataFrame
         DataFrame with flagged images removed.
+    mask : pandas.Series of bool (only if return_mask=True)
+        Boolean mask where True indicates the image was removed.
     """
 
     bit_info = {
@@ -35,25 +39,27 @@ def remove_flagged_images(df, bits_to_remove):
         14: 'Flatfield compensation factor abnormally large (>5%)'
     }
 
-    # Validate bits
     for bit in bits_to_remove:
         if bit not in bit_info:
             raise ValueError(f"Unsupported bit: {bit}. Supported bits are 1–14.")
 
-    # Create a combined bitmask
     combined_mask = 0
     for bit in bits_to_remove:
-        index = bit - 1
-        combined_mask |= (1 << index)
+        combined_mask |= (1 << (bit - 1))
 
-    # Filter out images where any pixel has any of the specified bits set
     def has_flagged_pixel(error_array):
-        return np.any(error_array & combined_mask != 0)
+        error_array = np.stack(error_array)  # Convert to proper 2D array
+        return np.any((error_array & combined_mask) != 0)
 
     mask = df['CalibrationErrors'].apply(has_flagged_pixel)
     df_clean = df[~mask].reset_index(drop=True)
 
-    return df_clean
+    if return_mask:
+        return df_clean, mask
+    else:
+        return df_clean
+
+
 
 def count_error_flags(df, xpix=None, ypix=None, bit=None, outputallindices=False, printinfo=False):
     """
