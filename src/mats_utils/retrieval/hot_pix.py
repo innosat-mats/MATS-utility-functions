@@ -81,7 +81,7 @@ def create_hot_pix_map_one_channel(df, thresholdalt=120000, remove_background=Tr
         image = np.array(row.ImageCalibrated, dtype=float)  # Ensure float for NaN support
         pixel_indices = compute_threshold_pixels(row, thresholdalt)
 
-        # Set pixels above threshold to NaN
+        # Set pixels beloe threshold altitude to NaN
         for col, threshold_row in enumerate(pixel_indices):
             image[:threshold_row, col] = np.nan
 
