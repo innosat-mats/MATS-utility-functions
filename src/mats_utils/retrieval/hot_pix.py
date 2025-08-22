@@ -11,14 +11,14 @@ import numpy as np
 
 def compute_threshold_pixels(CCDitem, thresholdalt):
     """
-    Calculates what pixel (ie what row)that is at the threshold altitude in each column
+    Calculates what pixel (ie what row) that is at the threshold altitude in each column
 
-    Input:
-    CCDitem: row of a dataframe with CCDitems
-    thresholdalt: float with the altitude threshold
+    Args:
+        CCDitem: row of a dataframe with CCDitems
+        thresholdalt: float with the altitude threshold
 
     Returns:
-    pixel_indices: list of pixel indices (rows) at the threshold altitude in each column
+        pixel_indices: list of pixel indices (rows) at the threshold altitude in each column
     """
     thl = col_heights(CCDitem, 0, 2) # (left) the 2 makes the function return the lowest and highest pixel
     thr = col_heights(CCDitem, CCDitem.NCOL, 2) # (right) the 2 makes the function return the lowest and highest pixel
@@ -59,13 +59,13 @@ def create_hot_pix_map_one_channel(df, thresholdalt=120000, remove_background=Tr
     Any background light is subtracted, so that the average of a row is set to the 
     value of the top of the image, if remove_background is set to true 
 
-    Input:
-    df: DataFrame containing the image data
-    thresholdalt: Optional. float with the altitude threshold above which the image should be dark
-    remove_background: Optional. boolean flag to remove background light
+    Args:
+        df: DataFrame containing the image data
+        thresholdalt: Optional. float with the altitude threshold above which the image should be dark
+        remove_background: Optional. boolean flag to remove background light
 
-    Output:
-    hot_pixel_map: 2D numpy array representing the hot pixel map for the channel
+    Returns:
+        hot_pixel_map: 2D numpy array representing the hot pixel map for the channel
     """
 
     # Check that all rows have the same channel
@@ -148,14 +148,14 @@ def create_hot_pix_map_one_channel_using_midtangentpoint_only(df):
 
     def min_heights_of_sides(CCDitem):
         """
-            #check the tangent points of the twwos sides, ie column=0 och column =NCOL, and take the minimum
+        Checks the tangent points of the two sides, ie column=0 och column =NCOL, and take the minimum
 
-        Input
-        CCDitem: row of a dataframe with CCDitems
+        Args:
+            CCDitem: row of a dataframe with CCDitems
 
         Returns:
-        th1: float with tangent height of lowest pixel on one side
-        th2: flaat with tangent height of lowest pixel on the other side
+            th1: float with tangent height of lowest pixel on one side
+            th2: float with tangent height of lowest pixel on the other side
 
         """
         from mats_utils.geolocation.coordinates import col_heights
