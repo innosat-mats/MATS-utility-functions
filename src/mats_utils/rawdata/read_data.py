@@ -18,9 +18,20 @@ def read_MATS_data(start_date,end_date,filter=None,version=False,level='1a',dev=
 
     if version == False:
         if level == '1a':
-            version = '0.7'
+            version = '1.0'
         elif level == '1b':
-            version = '0.4'
+            version = '1.0.1'
+
+    if level == '1b' and version == '1.0':
+        import warnings
+        warnings.warn(
+            "You requested L1b version '1.0' from the internal S3 bucket. "
+            "Note that the official Bolin Centre public release labelled '1.0' "
+            "corresponds to internal version '1.0.1'. "
+            "If you want the latest reprocessed data, use version='1.0.1'.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     s3 = fs.S3FileSystem(
         secret_key=credentials.secret_key,
