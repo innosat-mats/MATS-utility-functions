@@ -232,6 +232,41 @@ def read_MATS_payload_data(start_date,end_date,data_type='CCD',filter=None,versi
     return dataframe
 
 
+def read_MATS_payload_data_from_disk(start_date, end_date, data_type='CCD', path='.', filter=None):
+    """Reads payload data from a local directory tree produced by rac-extract-payload
+    (i.e. `<path>/<data_type>/<year>/<month>/<day>[/<hour>]/*.parquet`), instead of the
+    S3 archive used by read_MATS_payload_data.
+
+    Args:
+        start_date (datetime):      Read payload data from this time (inclusive).
+        end_date (datetime):        Read payload data up to this time (inclusive).
+        data_type (Optional str):   key describing the different types of data:
+                                    CCD, CPRU, HTR, PWR, STAT, TCV, PM
+                                    (Default: 'CCD')
+        path (Optional str):        Path to the directory containing the data_type
+                                    subdirectories (e.g. the parent of `extracted/CCD`).
+                                    (Default: '.')
+        filter (Optional[dict]):    Extra filters of the form:
+                                    `{fieldname1: [min, max], ...}`
+                                    (Default: None)
+
+    Returns:
+        DataFrame:      The payload data.
+    """
+
+    dataset_path = f"{path}/{data_type}"
+
+    if data_type == 'CCD':
+        data = read_ccd_data_in_interval(start_date, end_date, dataset_path, filter=filter)
+    else:
+        data = read_instrument_data_in_interval(start_date, end_date, dataset_path, filter=filter)
+
+    if len(data) == 0:
+        raise Warning('Dataset is empty check version or time interval')
+
+    return data
+
+
 def store_as_parquet(df, fname):
     """ Stores pandas dataframe to parquet file.
         ImageCalibrated is flattened (do be restored after reading), as parquet can only handle 1-D ndarrays.
@@ -247,7 +282,7 @@ def store_as_parquet(df, fname):
 
     if "ImageCalibrated" in df.columns:
         df["ImageCalibrated"] = [arr.flatten() for arr in df["ImageCalibrated"]]
-    df.to_parquet(fname, compression='gzip', engine='pyarrow', allow_truncated_timestamps=True, coerce_timestamps='ms')
+    df.to_parquet(fname, compression='gzip', engine='pyarrow')
 
 
 def load_parquet(fname, start=None, stop=None, filt={}, fail_if_empty=True, fail_if_no_file=True, time_var="EXPDate"):
